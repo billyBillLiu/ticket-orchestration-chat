@@ -23,8 +23,6 @@ const buildQuery = (params: Record<string, unknown>): string => {
 export const health = () => '/health';
 export const user = () => '/api/user';
 
-export const balance = () => '/api/balance';
-
 export const userPlugins = () => '/api/user/plugins';
 
 export const deleteUser = () => '/api/user/delete';

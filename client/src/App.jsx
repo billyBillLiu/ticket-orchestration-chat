@@ -10,6 +10,7 @@ import { ToastProvider } from './Providers';
 import Toast from './components/ui/Toast';
 import { LiveAnnouncer } from '~/a11y';
 import { router } from './routes';
+import './config/api';
 
 const App = () => {
   const { setError } = useApiErrorBoundary();

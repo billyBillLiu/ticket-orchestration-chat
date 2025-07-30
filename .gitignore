@@ -1,5 +1,8 @@
 ### node etc ###
 
+# Virtual Environment
+.venv/
+
 # Logs
 data-node
 meili_data*

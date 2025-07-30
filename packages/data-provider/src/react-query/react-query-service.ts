@@ -23,7 +23,7 @@ export const useAbortRequestWithMessage = (): UseMutationResult<
       dataService.abortRequestWithMessage(endpoint, abortKey, message),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.balance]);
+        // Removed balance query invalidation
       },
     },
   );

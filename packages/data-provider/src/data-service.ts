@@ -94,10 +94,6 @@ export function getUser(): Promise<t.TUser> {
   return request.get(endpoints.user());
 }
 
-export function getUserBalance(): Promise<t.TBalanceResponse> {
-  return request.get(endpoints.balance());
-}
-
 export const updateTokenCount = (text: string) => {
   return request.post(endpoints.tokenizer(), { arg: text });
 };
