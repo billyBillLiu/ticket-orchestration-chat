@@ -101,11 +101,14 @@ async def login(data: LoginRequest, db: Session = Depends(get_db)):
     user_response = UserResponse.model_validate(user)
     
     # Return old response structure for backward compatibility
-    return {
-        "token": access_token,
-        "token_type": "bearer",
-        "user": user_response.model_dump()
-    }
+    return ApiResponse.create_success(
+        data={
+            "token": access_token,
+            "token_type": "bearer",
+            "user": user_response,
+        },
+        message="Login successful"
+    )
 
 @router.get("/me")
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
