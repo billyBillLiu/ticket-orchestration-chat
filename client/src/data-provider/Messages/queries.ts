@@ -15,6 +15,7 @@ export const useGetMessagesByConvoId = <TData = t.TMessage[]>(
     [QueryKeys.messages, id],
     async () => {
       const result = await dataService.getMessagesByConvoId(id);
+      
       if (!location.pathname.includes('/c/new') && result?.length === 1) {
         const currentMessages = queryClient.getQueryData<t.TMessage[]>([QueryKeys.messages, id]);
         if (currentMessages?.length === 1) {

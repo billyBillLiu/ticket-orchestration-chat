@@ -39,26 +39,36 @@ const Registration: React.FC = () => {
   const registerUser = useRegisterUserMutation({
     onMutate: () => {
       setIsSubmitting(true);
+      setErrorMessage(''); // Clear any previous error messages
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setIsSubmitting(false);
-      setCountdown(3);
-      const timer = setInterval(() => {
-        setCountdown((prevCountdown) => {
-          if (prevCountdown <= 1) {
-            clearInterval(timer);
-            navigate('/c/new', { replace: true });
-            return 0;
-          } else {
-            return prevCountdown - 1;
-          }
-        });
-      }, 1000);
+      
+      // Check if the response indicates success or failure
+      if (data.success) {
+        setCountdown(3);
+        const timer = setInterval(() => {
+          setCountdown((prevCountdown) => {
+            if (prevCountdown <= 1) {
+              clearInterval(timer);
+              navigate('/c/new', { replace: true });
+              return 0;
+            } else {
+              return prevCountdown - 1;
+            }
+          });
+        }, 1000);
+      } else {
+        // Handle error response
+        setErrorMessage(data.message || 'Registration failed');
+      }
     },
     onError: (error: unknown) => {
       setIsSubmitting(false);
       if ((error as TError).response?.data?.message) {
         setErrorMessage((error as TError).response?.data?.message ?? '');
+      } else {
+        setErrorMessage('Registration failed. Please try again.');
       }
     },
   });
@@ -102,18 +112,13 @@ const Registration: React.FC = () => {
           {localize('com_auth_error_create')} {errorMessage}
         </ErrorMessage>
       )}
-      {registerUser.isSuccess && countdown > 0 && (
+      {registerUser.data?.success && countdown > 0 && (
         <div
           className="rounded-md border border-green-500 bg-green-500/10 px-3 py-2 text-sm text-gray-600 dark:text-gray-200"
           role="alert"
         >
-          {localize(
-            startupConfig?.emailEnabled
-              ? 'com_auth_registration_success_generic'
-              : 'com_auth_registration_success_insecure',
-          ) +
-            ' ' +
-            localize('com_auth_email_verification_redirecting', { 0: countdown.toString() })}
+          {registerUser.data?.message || localize('com_auth_registration_success_generic')} {' '}
+          {localize('com_auth_email_verification_redirecting', { 0: countdown.toString() })}
         </div>
       )}
       {!startupConfigError && !isFetching && (

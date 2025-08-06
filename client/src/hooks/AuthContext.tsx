@@ -8,10 +8,9 @@ import {
   useCallback,
   createContext,
 } from 'react';
-import { debounce } from 'lodash';
 import { useRecoilState } from 'recoil';
 import { useNavigate } from 'react-router-dom';
-import { setTokenHeader, SystemRoles } from 'librechat-data-provider';
+import { setTokenHeader, SystemRoles, QueryKeys } from 'librechat-data-provider';
 import type * as t from 'librechat-data-provider';
 import {
   useGetRole,
@@ -20,6 +19,7 @@ import {
   useLogoutUserMutation,
   useRefreshTokenMutation,
 } from '~/data-provider';
+import { QueryClient } from '@tanstack/react-query';
 import { TAuthConfig, TUserContext, TAuthContext, TResError } from '~/common';
 import useTimeout from './useTimeout';
 import store from '~/store';
@@ -90,11 +90,12 @@ const AuthContextProvider = ({
   children: ReactNode;
 }) => {
   const [user, setUser] = useRecoilState(store.user);
-  const [token, setToken] = useState<string | undefined>(getStoredToken);
+  const [token, setToken] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getStoredToken());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const logoutRedirectRef = useRef<string | undefined>(undefined);
+  const refreshAttemptedRef = useRef<boolean>(false);
 
   const { data: userRole = null } = useGetRole(SystemRoles.USER, {
     enabled: !!(isAuthenticated && (user?.role ?? '')),
@@ -105,40 +106,39 @@ const AuthContextProvider = ({
 
   const navigate = useNavigate();
 
-  const setUserContext = useMemo(
-    () =>
-      debounce((userContext: TUserContext) => {
-        const { token, isAuthenticated, user, redirect } = userContext;
-        
-        // Update state
-        setUser(user);
-        setToken(token);
-        setIsAuthenticated(isAuthenticated);
-        
-        // Persist to localStorage
-        setStoredToken(token);
-        setStoredUser(user);
-        
-        // Set token header for API requests
-        setTokenHeader(token || '');
+  const setUserContext = useCallback((userContext: TUserContext) => {
+    const { token, isAuthenticated, user, redirect } = userContext;
+    
+    console.log('🔧 setUserContext called with:', { token: !!token, isAuthenticated, user: !!user, redirect });
+    
+    // Update state
+    setUser(user);
+    setToken(token);
+    setIsAuthenticated(isAuthenticated);
+    
+    // Persist to localStorage
+    setStoredToken(token);
+    setStoredUser(user);
+    
+    // Set token header for API requests
+    setTokenHeader(token || '');
 
-        // Use a custom redirect if set
-        const finalRedirect = logoutRedirectRef.current || redirect;
-        // Clear the stored redirect
-        logoutRedirectRef.current = undefined;
+    // Use a custom redirect if set
+    const finalRedirect = logoutRedirectRef.current || redirect;
+    // Clear the stored redirect
+    logoutRedirectRef.current = undefined;
 
-        if (finalRedirect == null) {
-          return;
-        }
+    if (finalRedirect == null) {
+      return;
+    }
 
-        if (finalRedirect.startsWith('http://') || finalRedirect.startsWith('https://')) {
-          window.location.href = finalRedirect;
-        } else {
-          navigate(finalRedirect, { replace: true });
-        }
-      }, 50),
-    [navigate, setUser],
-  );
+    console.log('🔧 Navigating to:', finalRedirect);
+    if (finalRedirect.startsWith('http://') || finalRedirect.startsWith('https://')) {
+      window.location.href = finalRedirect;
+    } else {
+      navigate(finalRedirect, { replace: true });
+    }
+  }, [navigate]);
   const doSetError = useTimeout({ callback: (error) => setError(error as string | undefined) });
 
   const loginUser = useLoginUserMutation({
@@ -204,22 +204,49 @@ const AuthContextProvider = ({
       },
     })
       .then(async (res) => {
-        if (!res.ok) {
-          const error = await res.text();
+        const result = await res.json();
+        console.log('🔧 Login response:', result);
+        
+        // Handle both old and new response formats
+        if (result.success === false) {
+          const error = result.message;
           throw new Error(error);
         }
-        return res.json();
+        
+        // Check if it's the new standardized response format
+        if (result.success && result.data) {
+          return result.data;
+        }
+        
+        // Handle direct response format (from backend)
+        return result;
       })
       .then((result) => {
         // Directly set user context here, do not call loginUser.mutate
         const { user, token, token_type } = result;
-        setUserContext({
-          token: token,
-          isAuthenticated: true,
-          user,
-          redirect: '/c/new',
-        });
+        console.log('🔧 Login successful, setting user context');
+        
+        // Update state immediately
+        setUser(user);
+        setToken(token);
+        setIsAuthenticated(true);
+        
+        // Persist to localStorage
+        setStoredToken(token);
+        setStoredUser(user);
+        
+        // Set token header for API requests
+        setTokenHeader(token || '');
+        
+        // Clear any stale conversation cache
+        // Note: We can't access the query client here, so we'll rely on the
+        // conversation queries to handle fresh data loading
+        
         setError(undefined);
+        refreshAttemptedRef.current = false; // Reset flag on successful login
+        
+        // Navigate directly instead of using setUserContext
+        console.log('🔧 Navigating to /c/new after successful login');
         navigate('/c/new', { replace: true });
       })
       .catch((error) => {
@@ -252,10 +279,24 @@ const AuthContextProvider = ({
       setTokenHeader(token);
       refreshToken.mutate(undefined, {
         onSuccess: (data: t.TRefreshTokenResponse | undefined) => {
-          const { user, token = '' } = data ?? {};
+          // Handle both old and new response formats
+          let user, token = '';
+          if (data) {
+            if ('data' in data && data.data && typeof data.data === 'object') {
+              // New standardized response format
+              user = (data.data as any).user;
+              token = (data.data as any).token || '';
+            } else if (typeof data === 'object') {
+              // Old direct response format
+              user = (data as any).user;
+              token = (data as any).token || '';
+            }
+          }
+          
           if (token) {
             console.log('✅ Token refresh successful');
             setUserContext({ token, isAuthenticated: true, user });
+            refreshAttemptedRef.current = false; // Reset flag on successful refresh
           } else {
             console.log('❌ Token is not present. User is not authenticated.');
             if (authConfig?.test === true) {
@@ -264,6 +305,7 @@ const AuthContextProvider = ({
             // Clear invalid stored data and navigate to login
             clearStoredAuth();
             console.log('🚪 Navigating to login (no valid token)');
+            refreshAttemptedRef.current = false; // Reset flag when navigating to login
             navigate('/login');
           }
         },
@@ -275,6 +317,7 @@ const AuthContextProvider = ({
           // Clear invalid stored data and navigate to login
           clearStoredAuth();
           console.log('🚪 Navigating to login (refresh failed)');
+          refreshAttemptedRef.current = false; // Reset flag when navigating to login
           navigate('/login');
         },
       });
@@ -297,16 +340,15 @@ const AuthContextProvider = ({
       storedTokenLength: storedToken?.length 
     });
     
+    // Restore authentication state from localStorage if available
     if (storedToken && storedUser) {
       console.log('✅ Restoring authentication state from localStorage');
-      // Restore authentication state from localStorage
       setToken(storedToken);
+      setTokenHeader(storedToken);
       setUser(storedUser);
       setIsAuthenticated(true);
-      setTokenHeader(storedToken);
     } else {
-      console.log('❌ No valid stored auth data found');
-      // Clear any invalid stored data
+      console.log('❌ No stored authentication data found');
       clearStoredAuth();
     }
     
@@ -321,18 +363,34 @@ const AuthContextProvider = ({
       isAuthenticated, 
       isInitialized,
       userQueryData: !!userQuery.data,
-      userQueryError: !!userQuery.isError
+      userQueryError: !!userQuery.isError,
+      refreshAttempted: refreshAttemptedRef.current
     });
     
     if (userQuery.data) {
       console.log('✅ User query data received');
       setUser(userQuery.data);
+      // Only set isAuthenticated to true if we have a token (user logged in)
+      if (token) {
+        console.log('✅ User is authenticated (has token)');
+        setIsAuthenticated(true);
+        
+
+      } else {
+        console.log('❌ User has data but no token - not authenticated');
+        setIsAuthenticated(false);
+      }
+      refreshAttemptedRef.current = false; // Reset flag on successful auth
     } else if (userQuery.isError) {
       console.log('❌ User query error:', userQuery.error);
       doSetError((userQuery.error as Error).message);
-      // Don't immediately navigate to login on user query error
-      // Let the silentRefresh handle it
+      // Clear invalid stored data
+      clearStoredAuth();
+      setIsAuthenticated(false);
+      // Try silent refresh when user query fails
+      silentRefresh();
     }
+    
     if (error != null && error && isAuthenticated) {
       doSetError(undefined);
     }
@@ -344,9 +402,19 @@ const AuthContextProvider = ({
     }
     
     // Only handle authentication state changes, not initial setup
-    if (isInitialized && !isAuthenticated && !token) {
-      console.log('🚪 No token available, navigating to login');
-      navigate('/login');
+    if (isInitialized && !isAuthenticated && !token && !refreshAttemptedRef.current) {
+      console.log('🚪 No token available, trying silent refresh before navigating to login');
+      // Try silent refresh first, if it fails, navigate to login
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        console.log('🔄 Found stored token, attempting silent refresh');
+        refreshAttemptedRef.current = true;
+        silentRefresh();
+      } else {
+        console.log('🚪 No stored token, navigating to login');
+        refreshAttemptedRef.current = false; // Reset flag when navigating to login
+        navigate('/login');
+      }
     }
   }, [
     token,
@@ -356,7 +424,6 @@ const AuthContextProvider = ({
     userQuery.isError,
     userQuery.error,
     error,
-    setUser,
     navigate,
     setUserContext,
   ]);

@@ -7,17 +7,14 @@ import store from '~/store';
 export default function LoginLayout() {
   const { isAuthenticated } = useAuthContext();
   const [queriesEnabled, setQueriesEnabled] = useRecoilState<boolean>(store.queriesEnabled);
+  
   useEffect(() => {
-    if (queriesEnabled) {
-      return;
-    }
-    const timeout: NodeJS.Timeout = setTimeout(() => {
+    // Ensure queries are enabled when not authenticated
+    if (!isAuthenticated && !queriesEnabled) {
+      console.log('🔧 Enabling queries for unauthenticated user');
       setQueriesEnabled(true);
-    }, 500);
-
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [queriesEnabled, setQueriesEnabled]);
+    }
+  }, [isAuthenticated, queriesEnabled, setQueriesEnabled]);
+  
   return <StartupLayout isAuthenticated={isAuthenticated} />;
 }

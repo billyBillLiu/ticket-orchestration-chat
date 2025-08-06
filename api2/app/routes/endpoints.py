@@ -9,13 +9,16 @@ from app.routes.auth import get_current_user
 import uuid
 from datetime import datetime
 import json
+from app.utils.response_utils import ApiResponse
 
 router = APIRouter()
+
+
 
 @router.get("/endpoints")
 async def get_endpoints():
     """Get available endpoints configuration"""
-    return {
+    endpoints_data = {
         "openAI": {
             "enabled": True,
             "available": True,
@@ -37,6 +40,7 @@ async def get_endpoints():
             "models": []
         }
     }
+    return endpoints_data
 
 @router.get("/test")
 async def test_endpoint():
@@ -143,11 +147,8 @@ async def ask_openai(request: Request, db: Session = Depends(get_db), current_us
             context_summary = "This is a new conversation"
             
         placeholder_content = f'''API Key is still needed. This is a placeholder response.
-
-{context_summary}
-Your message was: "{user_message}"
-
-When you add an OpenAI API key, this will provide contextual responses based on the conversation history.'''
+                                    {context_summary}
+                                    Your message was: "{user_message}"'''
         
         # Get parent message ID from request
         parent_message_id = data.get("parentMessageId", "00000000-0000-0000-0000-000000000000")

@@ -52,3 +52,31 @@ export function extractEnvVariable(value: string) {
 
   return result;
 }
+
+// Response transformation utilities
+export const extractData = <T>(response: any): T => {
+  // Handle standardized response format
+  if (response?.data !== undefined) {
+    return response.data;
+  }
+  // Handle direct response format
+  return response;
+};
+
+export const extractUser = (response: any) => {
+  const data = extractData(response);
+  return (data as any)?.user || data;
+};
+
+export const extractToken = (response: any) => {
+  const data = extractData(response);
+  return (data as any)?.token || data;
+};
+
+// Simple wrapper for handling both old and new response formats
+export const handleResponse = <T>(response: any): T => {
+  if (response?.data !== undefined) {
+    return response.data;
+  }
+  return response;
+};

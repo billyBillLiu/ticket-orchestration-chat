@@ -3,16 +3,14 @@ from typing import List, Dict, Optional, Tuple
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.user import User
+from app.services.base_service import BaseService
 import json
 
-class MemoryService:
+class MemoryService(BaseService):
     """
     Service for managing conversation memory and context.
     Handles loading conversation history, managing context windows, and memory operations.
     """
-    
-    def __init__(self, db: Session):
-        self.db = db
     
     def get_conversation_context(
         self, 
@@ -34,14 +32,8 @@ class MemoryService:
             Tuple of (messages_list, conversation_title)
         """
         try:
-            # Verify conversation belongs to user
-            conversation = self.db.query(Conversation).filter(
-                Conversation.id == conversation_id,
-                Conversation.user_id == user_id
-            ).first()
-            
-            if not conversation:
-                return [], None
+            # Verify conversation belongs to user using base service method
+            conversation = self.verify_user_owns_conversation(user_id, conversation_id)
             
             # Get messages for this conversation, ordered by creation time
             messages = self.db.query(Message).filter(
@@ -78,14 +70,8 @@ class MemoryService:
             Dictionary with conversation summary
         """
         try:
-            # Verify conversation belongs to user
-            conversation = self.db.query(Conversation).filter(
-                Conversation.id == conversation_id,
-                Conversation.user_id == user_id
-            ).first()
-            
-            if not conversation:
-                return {}
+            # Verify conversation belongs to user using base service method
+            conversation = self.verify_user_owns_conversation(user_id, conversation_id)
             
             # Get message statistics
             total_messages = self.db.query(Message).filter(
@@ -117,10 +103,11 @@ class MemoryService:
                 "total_messages": total_messages,
                 "user_messages": user_messages,
                 "assistant_messages": assistant_messages,
+                "first_message_at": first_message.created_at.isoformat() if first_message else None,
+                "last_message_at": last_message.created_at.isoformat() if last_message else None,
                 "created_at": conversation.created_at.isoformat(),
                 "updated_at": conversation.updated_at.isoformat(),
-                "first_message_at": first_message.created_at.isoformat() if first_message else None,
-                "last_message_at": last_message.created_at.isoformat() if last_message else None
+                "is_archived": conversation.is_archived
             }
             
         except Exception as e:
@@ -129,8 +116,7 @@ class MemoryService:
     
     def get_user_conversation_memory(self, user_id: int, limit: int = 10) -> List[Dict]:
         """
-        Get recent conversation memory for a user.
-        Useful for showing recent conversations or context.
+        Get recent conversations for a user with memory context.
         
         Args:
             user_id: ID of the user
@@ -141,17 +127,16 @@ class MemoryService:
         """
         try:
             conversations = self.db.query(Conversation).filter(
-                Conversation.user_id == user_id,
-                Conversation.is_archived == False
+                Conversation.user_id == user_id
             ).order_by(Conversation.updated_at.desc()).limit(limit).all()
             
-            memory = []
+            memory_list = []
             for conv in conversations:
                 summary = self.get_conversation_summary(conv.id, user_id)
                 if summary:
-                    memory.append(summary)
+                    memory_list.append(summary)
             
-            return memory
+            return memory_list
             
         except Exception as e:
             print(f"Error getting user conversation memory: {e}")
@@ -164,34 +149,53 @@ class MemoryService:
         limit: int = 10
     ) -> List[Dict]:
         """
-        Search through conversation memory for specific content.
+        Search through user's conversation history.
         
         Args:
             user_id: ID of the user
-            query: Search query
-            limit: Maximum number of results
+            query: Search query string
+            limit: Maximum number of results to return
             
         Returns:
-            List of matching messages with conversation context
+            List of matching conversations
         """
         try:
-            # Search in messages content
-            messages = self.db.query(Message).join(Conversation).filter(
-                Conversation.user_id == user_id,
-                Message.content.ilike(f"%{query}%")
-            ).order_by(Message.created_at.desc()).limit(limit).all()
+            # Get user's conversations
+            conversations = self.db.query(Conversation).filter(
+                Conversation.user_id == user_id
+            ).all()
             
             results = []
-            for msg in messages:
-                results.append({
-                    "message_id": msg.message_id,
-                    "conversation_id": msg.conversation_id,
-                    "conversation_title": msg.conversation.title,
-                    "role": msg.role,
-                    "content": msg.content,
-                    "created_at": msg.created_at.isoformat(),
-                    "matched_query": query
-                })
+            for conv in conversations:
+                # Search in conversation title
+                if query.lower() in conv.title.lower():
+                    summary = self.get_conversation_summary(conv.id, user_id)
+                    if summary:
+                        results.append(summary)
+                        if len(results) >= limit:
+                            break
+                    continue
+                
+                # Search in messages
+                messages = self.db.query(Message).filter(
+                    Message.conversation_id == conv.id,
+                    Message.content.ilike(f"%{query}%")
+                ).limit(5).all()
+                
+                if messages:
+                    summary = self.get_conversation_summary(conv.id, user_id)
+                    if summary:
+                        summary["matching_messages"] = [
+                            {
+                                "role": msg.role,
+                                "content": msg.content[:100] + "..." if len(msg.content) > 100 else msg.content,
+                                "created_at": msg.created_at.isoformat()
+                            }
+                            for msg in messages
+                        ]
+                        results.append(summary)
+                        if len(results) >= limit:
+                            break
             
             return results
             
@@ -211,14 +215,8 @@ class MemoryService:
             List of messages with timeline information
         """
         try:
-            # Verify conversation belongs to user
-            conversation = self.db.query(Conversation).filter(
-                Conversation.id == conversation_id,
-                Conversation.user_id == user_id
-            ).first()
-            
-            if not conversation:
-                return []
+            # Verify conversation belongs to user using base service method
+            conversation = self.verify_user_owns_conversation(user_id, conversation_id)
             
             # Get all messages ordered by time
             messages = self.db.query(Message).filter(
@@ -244,35 +242,40 @@ class MemoryService:
     
     def cleanup_old_conversations(self, user_id: int, days_old: int = 30) -> int:
         """
-        Archive old conversations to free up memory.
+        Clean up old conversations for a user.
         
         Args:
             user_id: ID of the user
-            days_old: Number of days after which to archive conversations
+            days_old: Number of days old to consider for cleanup
             
         Returns:
-            Number of conversations archived
+            Number of conversations cleaned up
         """
         try:
             from datetime import datetime, timedelta
             
             cutoff_date = datetime.utcnow() - timedelta(days=days_old)
             
-            # Find old conversations
+            # Get old conversations
             old_conversations = self.db.query(Conversation).filter(
                 Conversation.user_id == user_id,
                 Conversation.updated_at < cutoff_date,
-                Conversation.is_archived == False
+                Conversation.is_archived == True
             ).all()
             
-            # Archive them
-            archived_count = 0
+            deleted_count = 0
             for conv in old_conversations:
-                conv.is_archived = True
-                archived_count += 1
+                # Delete associated messages first
+                self.db.query(Message).filter(
+                    Message.conversation_id == conv.id
+                ).delete()
+                
+                # Delete conversation
+                self.db.delete(conv)
+                deleted_count += 1
             
             self.db.commit()
-            return archived_count
+            return deleted_count
             
         except Exception as e:
             print(f"Error cleaning up old conversations: {e}")

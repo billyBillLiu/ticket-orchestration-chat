@@ -1,15 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
-import uuid
 
 from app.models import get_db
 from app.models.user import User
-from app.models.conversation import Conversation
-from app.models.message import Message
 from app.schemas.message import MessageResponse, MessageCreate, MessageUpdate, MessageListResponse
 from app.routes.auth import get_current_user
+from app.services.message_service import MessageService
 
 router = APIRouter(tags=["Messages"])
 
@@ -26,25 +23,10 @@ async def get_conversation_messages(
     Supports pagination and ensures user can only access their own conversations.
     """
     try:
-        # Verify conversation belongs to user
-        conversation = db.query(Conversation).filter(
-            Conversation.id == conversation_id,
-            Conversation.user_id == current_user.id
-        ).first()
-        
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conversation not found"
-            )
-        
-        # Get messages with pagination
-        offset = (page - 1) * limit
-        messages = db.query(Message).filter(
-            Message.conversation_id == conversation_id
-        ).order_by(Message.created_at.asc()).offset(offset).limit(limit).all()
-        
-        total = db.query(Message).filter(Message.conversation_id == conversation_id).count()
+        message_service = MessageService(db)
+        messages, total = message_service.get_conversation_messages(
+            conversation_id, current_user.id, page, limit
+        )
         
         # Convert to response models
         message_responses = [MessageResponse.model_validate(msg) for msg in messages]
@@ -73,38 +55,16 @@ async def create_message(
     Create a new message in a conversation.
     """
     try:
-        # Verify conversation belongs to user
-        conversation = db.query(Conversation).filter(
-            Conversation.id == conversation_id,
-            Conversation.user_id == current_user.id
-        ).first()
-        
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conversation not found"
-            )
-        
-        # Create new message
-        new_message = Message(
-            message_id=str(uuid.uuid4()),
-            conversation_id=conversation_id,
-            parent_message_id=message.parent_message_id,
-            role=message.role,
-            content=message.content,
-            is_created_by_user=message.is_created_by_user
+        message_service = MessageService(db)
+        new_message = message_service.create_message(
+            conversation_id, current_user.id, message
         )
-        
-        db.add(new_message)
-        db.commit()
-        db.refresh(new_message)
         
         return MessageResponse.model_validate(new_message)
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating message: {str(e)}"
@@ -120,25 +80,8 @@ async def get_message(
     Get a specific message by ID.
     """
     try:
-        message = db.query(Message).filter(Message.message_id == message_id).first()
-        
-        if not message:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Message not found"
-            )
-        
-        # Verify user has access to this message through conversation ownership
-        conversation = db.query(Conversation).filter(
-            Conversation.id == message.conversation_id,
-            Conversation.user_id == current_user.id
-        ).first()
-        
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
+        message_service = MessageService(db)
+        message = message_service.get_message(message_id, current_user.id)
         
         return MessageResponse.model_validate(message)
         
@@ -161,45 +104,16 @@ async def update_message(
     Update a specific message.
     """
     try:
-        message = db.query(Message).filter(Message.message_id == message_id).first()
+        message_service = MessageService(db)
+        updated_message = message_service.update_message(
+            message_id, current_user.id, message_update
+        )
         
-        if not message:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Message not found"
-            )
-        
-        # Verify user has access to this message
-        conversation = db.query(Conversation).filter(
-            Conversation.id == message.conversation_id,
-            Conversation.user_id == current_user.id
-        ).first()
-        
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Update message fields
-        if message_update.content is not None:
-            message.content = message_update.content
-        if message_update.role is not None:
-            message.role = message_update.role
-        if message_update.is_created_by_user is not None:
-            message.is_created_by_user = message_update.is_created_by_user
-        
-        message.updated_at = datetime.utcnow()
-        
-        db.commit()
-        db.refresh(message)
-        
-        return MessageResponse.model_validate(message)
+        return MessageResponse.model_validate(updated_message)
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating message: {str(e)}"
@@ -215,35 +129,14 @@ async def delete_message(
     Delete a specific message.
     """
     try:
-        message = db.query(Message).filter(Message.message_id == message_id).first()
-        
-        if not message:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Message not found"
-            )
-        
-        # Verify user has access to this message
-        conversation = db.query(Conversation).filter(
-            Conversation.id == message.conversation_id,
-            Conversation.user_id == current_user.id
-        ).first()
-        
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        db.delete(message)
-        db.commit()
+        message_service = MessageService(db)
+        message_service.delete_message(message_id, current_user.id)
         
         return {"message": "Message deleted successfully"}
         
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting message: {str(e)}"

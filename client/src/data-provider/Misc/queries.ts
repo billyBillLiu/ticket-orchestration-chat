@@ -9,7 +9,19 @@ export const useGetBannerQuery = (
   config?: UseQueryOptions<t.TBannerResponse>,
 ): QueryObserverResult<t.TBannerResponse> => {
   const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
-  return useQuery<t.TBannerResponse>([QueryKeys.banner], () => dataService.getBanner(), {
+  return useQuery<t.TBannerResponse>([QueryKeys.banner], async () => {
+    const response = await dataService.getBanner();
+    // Handle standardized response format
+    if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'API request failed');
+      }
+    }
+    // If not standardized format, return as is (for backward compatibility)
+    return response;
+  }, {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
@@ -22,7 +34,19 @@ export const useGetSearchEnabledQuery = (
   config?: UseQueryOptions<boolean>,
 ): QueryObserverResult<boolean> => {
   const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
-  return useQuery<boolean>([QueryKeys.searchEnabled], () => dataService.getSearchEnabled(), {
+  return useQuery<boolean>([QueryKeys.searchEnabled], async () => {
+    const response = await dataService.getSearchEnabled();
+    // Handle standardized response format
+    if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'API request failed');
+      }
+    }
+    // If not standardized format, return as is (for backward compatibility)
+    return response;
+  }, {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,

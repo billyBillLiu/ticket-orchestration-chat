@@ -75,7 +75,19 @@ let isRefreshing = false;
 let failedQueue: { resolve: (value?: any) => void; reject: (reason?: any) => void }[] = [];
 
 const refreshToken = (retry?: boolean): Promise<t.TRefreshTokenResponse | undefined> =>
-  _post(endpoints.refreshToken(retry));
+  _post(endpoints.refreshToken(retry)).then((response: any) => {
+    // Handle both old and new response formats
+    if (response.data && response.data.token) {
+      // New standardized response format
+      return response.data;
+    } else if (response.token) {
+      // Old direct response format
+      return response;
+    } else {
+      // Fallback to original response
+      return response;
+    }
+  });
 
 const dispatchTokenUpdatedEvent = (token: string) => {
   setTokenHeader(token);

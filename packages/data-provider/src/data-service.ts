@@ -10,6 +10,7 @@ import * as config from './config';
 import request from './request';
 import * as s from './schemas';
 import * as r from './roles';
+import { handleResponse } from './utils';
 
 export function abortRequestWithMessage(
   endpoint: string,
@@ -91,7 +92,9 @@ export function getSearchEnabled(): Promise<boolean> {
 }
 
 export function getUser(): Promise<t.TUser> {
-  return request.get(endpoints.user());
+  return request.get(endpoints.user()).then(handleResponse).then((response: any) => {
+    return response.user;
+  });
 }
 
 export const updateTokenCount = (text: string) => {
@@ -99,11 +102,15 @@ export const updateTokenCount = (text: string) => {
 };
 
 export const login = (payload: t.TLoginUser): Promise<t.TLoginResponse> => {
-  return request.post(endpoints.login(), payload);
+  return request.post(endpoints.login(), payload).then((response: any) => {
+      return response.data;
+  });
 };
 
 export const logout = (): Promise<m.TLogoutResponse> => {
-  return request.post(endpoints.logout());
+  return request.post(endpoints.logout()).then((response: any) => {
+      return response.data;
+  });
 };
 
 export const register = (payload: t.TRegisterUser) => {
@@ -152,15 +159,38 @@ export const getStartupConfig = (): Promise<
     mcpCustomUserVars?: Record<string, { title: string; description: string }>;
   }
 > => {
-  return request.get(endpoints.config());
+  console.log('🔧 getStartupConfig calling endpoint:', endpoints.config());
+  return request.get(endpoints.config()).then((response: any) => {
+    console.log('🔧 getStartupConfig response:', response);
+    // response is already the standardized response (because _get returns response.data)
+    if (response?.data) {
+      console.log('🔧 getStartupConfig extracted data:', response.data);
+      return response.data;
+    }
+    console.log('🔧 getStartupConfig returning original response:', response);
+    return response;
+  }).catch((error: any) => {
+    console.error('🔧 getStartupConfig error:', error);
+    throw error;
+  });
 };
 
 export const getAIEndpoints = (): Promise<t.TEndpointsConfig> => {
-  return request.get(endpoints.aiEndpoints());
+  return request.get(endpoints.aiEndpoints()).then((response: any) => {
+    if (response?.data) {
+      return response.data;
+    }
+    return response;
+  });
 };
 
 export const getModels = async (): Promise<t.TModelsConfig> => {
-  return request.get(endpoints.models());
+  return request.get(endpoints.models()).then((response: any) => {
+    if (response?.data) {
+      return response.data;
+    }
+    return response;
+  });
 };
 
 export const getEndpointsConfigOverride = (): Promise<unknown | boolean> => {
@@ -319,11 +349,21 @@ export const getToolCalls = (params: q.GetToolCallParams): Promise<q.ToolCallRes
 /* Files */
 
 export const getFiles = (): Promise<f.TFile[]> => {
-  return request.get(endpoints.files());
+  return request.get(endpoints.files()).then((response: any) => {
+    if (response?.data) {
+      return response.data;
+    }
+    return response;
+  });
 };
 
 export const getFileConfig = (): Promise<f.FileConfig> => {
-  return request.get(`${endpoints.files()}/config`);
+  return request.get(`${endpoints.files()}/config`).then((response: any) => {
+    if (response?.data) {
+      return response.data;
+    }
+    return response;
+  });
 };
 
 export const uploadImage = (
@@ -704,7 +744,12 @@ export function getRandomPrompts(
 
 /* Roles */
 export function getRole(roleName: string): Promise<r.TRole> {
-  return request.get(endpoints.getRole(roleName));
+  return request.get(endpoints.getRole(roleName)).then((response: any) => {
+    if (response?.data) {
+      return response.data;
+    }
+    return response;
+  });
 }
 
 export function updatePromptPermissions(

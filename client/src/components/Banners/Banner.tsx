@@ -15,7 +15,7 @@ export const Banner = ({ onHeightChange }: { onHeightChange?: (height: number) =
     }
   }, [banner, hideBannerHint, onHeightChange]);
 
-  if (!banner || (banner.bannerId && hideBannerHint.includes(banner.bannerId))) {
+  if (!banner || !banner.enabled || (banner.bannerId && hideBannerHint.includes(banner.bannerId))) {
     return null;
   }
 

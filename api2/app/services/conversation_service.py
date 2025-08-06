@@ -1,0 +1,211 @@
+from sqlalchemy.orm import Session
+from typing import List, Optional, Tuple
+from fastapi import HTTPException, status
+from datetime import datetime
+
+from app.models.conversation import Conversation
+from app.models.user import User
+from app.services.base_service import BaseService
+from app.schemas.conversation import ConversationResponse, ConversationListResponse
+
+class ConversationService(BaseService):
+    """
+    Service for managing conversations.
+    Handles CRUD operations for conversations with proper authorization.
+    """
+    
+    def get_user_conversations(
+        self, 
+        user_id: int,
+        page: int = 1,
+        limit: int = 20,
+        archived: Optional[bool] = None
+    ) -> Tuple[List[Conversation], int]:
+        """
+        Get conversations for a user with pagination and filtering.
+        
+        Args:
+            user_id: ID of the user
+            page: Page number (1-based)
+            limit: Number of conversations per page
+            archived: Filter by archived status (None for all)
+            
+        Returns:
+            Tuple of (conversations_list, total_count)
+        """
+        # Build query
+        query = self.db.query(Conversation).filter(Conversation.user_id == user_id)
+        
+        # Filter by archived status if specified
+        if archived is not None:
+            query = query.filter(Conversation.is_archived == archived)
+        
+        # Get total count
+        total = query.count()
+        
+        # Apply pagination
+        offset = (page - 1) * limit
+        conversations = query.order_by(Conversation.updated_at.desc()).offset(offset).limit(limit).all()
+        
+        return conversations, total
+    
+    def create_conversation(self, user_id: int, title: Optional[str] = None) -> Conversation:
+        """
+        Create a new conversation for a user.
+        
+        Args:
+            user_id: ID of the user
+            title: Optional title for the conversation
+            
+        Returns:
+            Created conversation
+        """
+        new_conversation = Conversation(
+            user_id=user_id,
+            title=title or f"New Conversation {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+        )
+        
+        self.db.add(new_conversation)
+        self.db.commit()
+        self.db.refresh(new_conversation)
+        
+        return new_conversation
+    
+    def get_conversation(self, conversation_id: int, user_id: int) -> Conversation:
+        """
+        Get a specific conversation by ID, ensuring user owns it.
+        
+        Args:
+            conversation_id: ID of the conversation
+            user_id: ID of the user (for security)
+            
+        Returns:
+            Conversation object
+        """
+        return self.verify_user_owns_conversation(user_id, conversation_id)
+    
+    def update_conversation(
+        self, 
+        conversation_id: int, 
+        user_id: int,
+        title: Optional[str] = None,
+        is_archived: Optional[bool] = None
+    ) -> Conversation:
+        """
+        Update a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            user_id: ID of the user (for security)
+            title: New title (optional)
+            is_archived: Archive status (optional)
+            
+        Returns:
+            Updated conversation
+        """
+        conversation = self.verify_user_owns_conversation(user_id, conversation_id)
+        
+        # Update fields
+        if title is not None:
+            conversation.title = title
+        if is_archived is not None:
+            conversation.is_archived = is_archived
+        
+        conversation.updated_at = datetime.utcnow()
+        
+        self.db.commit()
+        self.db.refresh(conversation)
+        
+        return conversation
+    
+    def delete_conversation(self, conversation_id: int, user_id: int) -> bool:
+        """
+        Delete a conversation and all its messages.
+        
+        Args:
+            conversation_id: ID of the conversation
+            user_id: ID of the user (for security)
+            
+        Returns:
+            True if deleted successfully
+        """
+        conversation = self.verify_user_owns_conversation(user_id, conversation_id)
+        
+        # Delete associated messages first
+        from app.models.message import Message
+        self.db.query(Message).filter(
+            Message.conversation_id == conversation_id
+        ).delete()
+        
+        # Delete conversation
+        self.db.delete(conversation)
+        self.db.commit()
+        
+        return True
+    
+    def archive_conversation(self, conversation_id: int, user_id: int) -> Conversation:
+        """
+        Archive a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            user_id: ID of the user (for security)
+            
+        Returns:
+            Updated conversation
+        """
+        return self.update_conversation(conversation_id, user_id, is_archived=True)
+    
+    def unarchive_conversation(self, conversation_id: int, user_id: int) -> Conversation:
+        """
+        Unarchive a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            user_id: ID of the user (for security)
+            
+        Returns:
+            Updated conversation
+        """
+        return self.update_conversation(conversation_id, user_id, is_archived=False)
+    
+    def get_conversation_stats(self, conversation_id: int, user_id: int) -> dict:
+        """
+        Get statistics for a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            user_id: ID of the user (for security)
+            
+        Returns:
+            Dictionary with conversation statistics
+        """
+        conversation = self.verify_user_owns_conversation(user_id, conversation_id)
+        
+        from app.models.message import Message
+        
+        # Get message statistics
+        total_messages = self.db.query(Message).filter(
+            Message.conversation_id == conversation_id
+        ).count()
+        
+        user_messages = self.db.query(Message).filter(
+            Message.conversation_id == conversation_id,
+            Message.role == "user"
+        ).count()
+        
+        assistant_messages = self.db.query(Message).filter(
+            Message.conversation_id == conversation_id,
+            Message.role == "assistant"
+        ).count()
+        
+        return {
+            "conversation_id": conversation_id,
+            "title": conversation.title,
+            "total_messages": total_messages,
+            "user_messages": user_messages,
+            "assistant_messages": assistant_messages,
+            "created_at": conversation.created_at.isoformat(),
+            "updated_at": conversation.updated_at.isoformat(),
+            "is_archived": conversation.is_archived
+        } 

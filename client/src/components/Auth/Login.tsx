@@ -13,6 +13,12 @@ function Login() {
   const localize = useLocalize();
   const { error, setError, login } = useAuthContext();
   const { startupConfig } = useOutletContext<TLoginLayoutContext>();
+  
+  console.log('🔧 Login component:', { 
+    startupConfig: !!startupConfig, 
+    emailLoginEnabled: startupConfig?.emailLoginEnabled,
+    registrationEnabled: startupConfig?.registrationEnabled 
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   // Determine if auto-redirect should be disabled based on the URL parameter

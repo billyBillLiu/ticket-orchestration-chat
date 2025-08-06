@@ -111,6 +111,7 @@ export const useEndpoints = ({
         value: ep,
         label: alternateName[ep] || ep,
         hasModels,
+        models: [], // Initialize with empty array to prevent .find() errors
         icon: Icon
           ? React.createElement(Icon, {
               size: 20,

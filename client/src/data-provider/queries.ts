@@ -35,7 +35,19 @@ import { findConversationInInfinite } from '~/utils';
 export const useGetPresetsQuery = (
   config?: UseQueryOptions<TPreset[]>,
 ): QueryObserverResult<TPreset[], unknown> => {
-  return useQuery<TPreset[]>([QueryKeys.presets], () => dataService.getPresets(), {
+  return useQuery<TPreset[]>([QueryKeys.presets], async () => {
+    const response = await dataService.getPresets();
+    // Handle standardized response format
+    if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'API request failed');
+      }
+    }
+    // If not standardized format, return as is (for backward compatibility)
+    return response;
+  }, {
     staleTime: 1000 * 10,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -67,7 +79,7 @@ export const useGetConvoIdQuery = (
 
   return useQuery<t.TConversation>(
     [QueryKeys.conversation, id],
-    () => {
+    async () => {
       // Try to find in all fetched infinite pages
       const convosQuery = queryClient.getQueryData<InfiniteData<ConversationCursorData>>(
         [QueryKeys.allConversations],
@@ -79,7 +91,17 @@ export const useGetConvoIdQuery = (
         return found;
       }
       // Otherwise, fetch from API
-      return dataService.getConversationById(id);
+      const response = await dataService.getConversationById(id);
+      // Handle standardized response format
+      if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+        if (response.success) {
+          return response.data;
+        } else {
+          throw new Error(response.message || 'API request failed');
+        }
+      }
+      // If not standardized format, return as is (for backward compatibility)
+      return response;
     },
     {
       refetchOnWindowFocus: false,
@@ -96,20 +118,34 @@ export const useConversationsInfiniteQuery = (
 ) => {
   const { isArchived, sortBy, sortDirection, tags, search } = params;
 
+  // Clear any stale conversation cache on mount
+  const queryClient = useQueryClient();
+  
   return useInfiniteQuery<ConversationListResponse>({
     queryKey: [
       isArchived ? QueryKeys.archivedConversations : QueryKeys.allConversations,
       { isArchived, sortBy, sortDirection, tags, search },
     ],
-    queryFn: ({ pageParam }) =>
-      dataService.listConversations({
+    queryFn: async ({ pageParam }) => {
+      const response = await dataService.listConversations({
         isArchived,
         sortBy,
         sortDirection,
         tags,
         search,
         cursor: pageParam?.toString(),
-      }),
+      });
+      // Handle standardized response format
+      if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+        if (response.success) {
+          return response.data;
+        } else {
+          throw new Error(response.message || 'API request failed');
+        }
+      }
+      // If not standardized format, return as is (for backward compatibility)
+      return response;
+    },
     getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
     keepPreviousData: true,
     staleTime: 5 * 60 * 1000, // 5 minutes

@@ -349,7 +349,10 @@ export type TSearchMessage = object;
 export type TSearchMessageTreeNode = object;
 
 export type TRegisterUserResponse = {
+  success: boolean;
   message: string;
+  user?: TUser;
+  error_type?: string;
 };
 
 export type TRegisterUser = {

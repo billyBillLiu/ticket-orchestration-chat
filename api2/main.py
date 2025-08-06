@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
 import uvicorn
 import logging
 import os
@@ -58,14 +59,17 @@ app.add_middleware(
     allowed_hosts=["*"]  # Configure this properly for production
 )
 
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global exception handler: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+# Import response utilities for global exception handlers
+from app.utils.response_utils import (
+    validation_exception_handler,
+    http_exception_handler,
+    general_exception_handler
+)
+
+# Register global exception handlers from response_utils.py to standardize responses
+app.add_exception_handler(Exception, general_exception_handler) # For general exceptions (Code 500) 
+app.add_exception_handler(HTTPException, http_exception_handler) # For HTTP errors (Code 400, 401, 403, 404, 500)
+app.add_exception_handler(RequestValidationError, validation_exception_handler) # For validation errors (Code 422)
 
 # Health check endpoint
 @app.get("/health")
@@ -89,20 +93,21 @@ async def api_info():
     }
 
 # Import and include route modules
-from app.routes import auth, config, banner, endpoints, user, conversations, models, files, search, roles, agents, keys, presets, messages, memory
+# TODO: Add other routes here: presets, keys, agents, roles, search, banner
+from app.routes import auth, config, endpoints, user, conversations, models, files, messages, memory, stubs
 app.include_router(auth.router, prefix="/api")
 app.include_router(config.router, prefix="/api")
-app.include_router(banner.router, prefix="/api")
+app.include_router(stubs.router, prefix="/api")
 app.include_router(endpoints.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(conversations.router, prefix="/api/convos")
 app.include_router(models.router, prefix="/api")
 app.include_router(files.router, prefix="/api")
-app.include_router(search.router, prefix="/api")
-app.include_router(roles.router, prefix="/api")
-app.include_router(agents.router, prefix="/api")
-app.include_router(keys.router, prefix="/api")
-app.include_router(presets.router, prefix="/api")
+app.include_router(stubs.router, prefix="/api")
+app.include_router(stubs.router, prefix="/api")
+app.include_router(stubs.router, prefix="/api")
+app.include_router(stubs.router, prefix="/api")
+app.include_router(stubs.router, prefix="/api")
 app.include_router(messages.router, prefix="/api/convos")
 app.include_router(memory.router, prefix="/api/memory")
 
