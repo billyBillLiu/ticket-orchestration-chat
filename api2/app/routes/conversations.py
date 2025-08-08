@@ -33,11 +33,16 @@ async def get_conversations(
         # Convert to response models
         conversation_responses = [ConversationResponse.model_validate(conv) for conv in conversations]
         
+        # Debug: Log the response data
+        response_data = {
+            "conversations": [conv.model_dump() for conv in conversation_responses],
+            "nextCursor": None  # For now, no pagination cursor
+        }
+        print(f"DEBUG: Returning conversations for user {current_user.id}: {len(conversation_responses)} conversations")
+        print(f"DEBUG: Response data: {response_data}")
+        
         return ApiResponse.create_success(
-            data={
-                "conversations": [conv.model_dump() for conv in conversation_responses],
-                "nextCursor": None  # For now, no pagination cursor
-            },
+            data=response_data,
             message="Conversations retrieved successfully"
         )
         
