@@ -15,5 +15,8 @@ async def get_user(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     user_response = UserResponse.model_validate(current_user)
     
-    # Return old response structure for backward compatibility
-    return user_response.model_dump()
+    # Return standardized response format for consistency
+    return ApiResponse.create_success(
+        data={"user": user_response},
+        message="User information retrieved successfully"
+    )

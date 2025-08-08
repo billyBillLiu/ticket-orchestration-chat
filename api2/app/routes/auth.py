@@ -66,8 +66,11 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         # token = generate_verification_token(getattr(db_user, 'id'), getattr(db_user, 'email'))
         # send_verification_email(getattr(db_user, 'email'), token)
         
+        # Convert SQLAlchemy model to Pydantic model for serialization
+        user_response = UserResponse.model_validate(db_user)
+        
         return ApiResponse.create_success(
-            data={"user": db_user},
+            data={"user": user_response},
             message="User registered successfully"
         )
         

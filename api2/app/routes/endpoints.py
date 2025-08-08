@@ -117,14 +117,10 @@ async def ask_openai(request: Request, db: Session = Depends(get_db), current_us
                 conversation = None
         
         if not conversation:
-            # Create a new conversation
-            conversation = Conversation(
-                title=f"New conversation {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
-                user_id=current_user.id
-            )
-            db.add(conversation)
-            db.commit()
-            db.refresh(conversation)
+            # Create a new conversation using the service
+            from app.services.conversation_service import ConversationService
+            conversation_service = ConversationService(db)
+            conversation = conversation_service.create_conversation(current_user.id)
 
         # Mock OpenAI-like response
         response_id = str(uuid.uuid4())

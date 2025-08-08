@@ -62,12 +62,18 @@ class ConversationService(BaseService):
         """
         new_conversation = Conversation(
             user_id=user_id,
-            title=title or f"New Conversation {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+            title=title or "New Conversation"
         )
         
         self.db.add(new_conversation)
         self.db.commit()
         self.db.refresh(new_conversation)
+        
+        # Update title with conversation ID if no custom title was provided
+        if not title:
+            new_conversation.title = f"Conversation {new_conversation.id}"
+            self.db.commit()
+            self.db.refresh(new_conversation)
         
         return new_conversation
     
