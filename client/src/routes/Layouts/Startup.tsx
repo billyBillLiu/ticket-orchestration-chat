@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import type { TStartupConfig } from 'librechat-data-provider';
 import { useGetStartupConfig } from '~/data-provider';
@@ -17,30 +17,55 @@ export default function StartupLayout({ isAuthenticated }: { isAuthenticated?: b
   const [error, setError] = useState<TranslationKeys | null>(null);
   const [headerText, setHeaderText] = useState<TranslationKeys | null>(null);
   const [startupConfig, setStartupConfig] = useState<TStartupConfig | null>(null);
+  const prevStartupConfigRef = useRef<TStartupConfig | null>(null);
+  
   const {
     data,
     isFetching,
     error: startupConfigError,
   } = useGetStartupConfig({
     enabled: !isAuthenticated || startupConfig === null,
+    staleTime: Infinity, // Cache indefinitely since config rarely changes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
+  
   const localize = useLocalize();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Memoize the effect dependencies to prevent unnecessary re-runs
+  const effectDependencies = useMemo(() => ({
+    isAuthenticated,
+    hasData: !!data,
+    startupConfig: !!startupConfig,
+    dataKeys: data ? Object.keys(data) : [],
+    emailLoginEnabled: data?.emailLoginEnabled,
+    registrationEnabled: data?.registrationEnabled
+  }), [isAuthenticated, data, startupConfig]);
+
   useEffect(() => {
-    console.log('🔄 StartupLayout effect:', { isAuthenticated, hasData: !!data, startupConfig: !!startupConfig });
+    const hasSignificantChange = 
+      prevStartupConfigRef.current !== startupConfig ||
+      effectDependencies.isAuthenticated !== isAuthenticated ||
+      effectDependencies.hasData !== !!data;
+    
+    if (hasSignificantChange) {
+      console.log('🔄 StartupLayout effect:', { 
+        isAuthenticated, 
+        hasData: !!data, 
+        startupConfig: !!startupConfig 
+      });
+    }
+    
     if (isAuthenticated) {
       navigate('/c/new', { replace: true });
     }
-    if (data) {
+    
+    if (data && data !== prevStartupConfigRef.current) {
       console.log('✅ Setting startup config:', data);
-      console.log('🔧 Config data structure:', {
-        hasData: !!data,
-        dataKeys: data ? Object.keys(data) : [],
-        emailLoginEnabled: data?.emailLoginEnabled,
-        registrationEnabled: data?.registrationEnabled
-      });
+      console.log('🔧 Config data structure:', effectDependencies);
       
       // Check if data is the standardized response format
       if (data.success && data.data) {
@@ -50,8 +75,10 @@ export default function StartupLayout({ isAuthenticated }: { isAuthenticated?: b
         console.log('🔧 Using data directly (not standardized response)');
         setStartupConfig(data);
       }
+      
+      prevStartupConfigRef.current = data;
     }
-  }, [isAuthenticated, navigate, data]);
+  }, [isAuthenticated, navigate, data, effectDependencies]);
 
   useEffect(() => {
     document.title = startupConfig?.appTitle || 'LibreChat';
@@ -62,7 +89,7 @@ export default function StartupLayout({ isAuthenticated }: { isAuthenticated?: b
     setHeaderText(null);
   }, [location.pathname]);
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     error,
     setError,
     headerText,
@@ -70,7 +97,7 @@ export default function StartupLayout({ isAuthenticated }: { isAuthenticated?: b
     startupConfigError,
     startupConfig,
     isFetching,
-  };
+  }), [error, setError, headerText, setHeaderText, startupConfigError, startupConfig, isFetching]);
 
   return (
     <AuthLayout

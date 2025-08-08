@@ -8,8 +8,9 @@ import {
   useCallback,
   createContext,
 } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { setTokenHeader, SystemRoles, QueryKeys } from 'librechat-data-provider';
 import type * as t from 'librechat-data-provider';
 import {
@@ -96,6 +97,11 @@ const AuthContextProvider = ({
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const logoutRedirectRef = useRef<string | undefined>(undefined);
   const refreshAttemptedRef = useRef<boolean>(false);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
+  const setQueriesEnabled = useSetRecoilState<boolean>(store.queriesEnabled);
+  const lastProcessedUserDataRef = useRef<any>(null);
+  const authStateRef = useRef({ token, isAuthenticated, isInitialized });
 
   const { data: userRole = null } = useGetRole(SystemRoles.USER, {
     enabled: !!(isAuthenticated && (user?.role ?? '')),
@@ -109,12 +115,21 @@ const AuthContextProvider = ({
   const setUserContext = useCallback((userContext: TUserContext) => {
     const { token, isAuthenticated, user, redirect } = userContext;
     
-    console.log('🔧 setUserContext called with:', { token: !!token, isAuthenticated, user: !!user, redirect });
+    // Only log if there's an actual change
+    const hasChanged = authStateRef.current.token !== token || 
+                      authStateRef.current.isAuthenticated !== isAuthenticated;
+    
+    if (hasChanged) {
+      console.log('🔧 setUserContext called with:', { token: !!token, isAuthenticated, user: !!user, redirect });
+    }
     
     // Update state
     setUser(user);
     setToken(token);
     setIsAuthenticated(isAuthenticated);
+    
+    // Update ref for change detection
+    authStateRef.current = { token, isAuthenticated, isInitialized: authStateRef.current.isInitialized };
     
     // Persist to localStorage
     setStoredToken(token);
@@ -162,6 +177,8 @@ const AuthContextProvider = ({
     onSuccess: (data) => {
       // Clear stored auth data
       clearStoredAuth();
+      // Reset processed user data ref for fresh processing on next login
+      lastProcessedUserDataRef.current = null;
       setUserContext({
         token: undefined,
         isAuthenticated: false,
@@ -172,6 +189,8 @@ const AuthContextProvider = ({
     onError: (error) => {
       // Clear stored auth data on error too
       clearStoredAuth();
+      // Reset processed user data ref for fresh processing on next login
+      lastProcessedUserDataRef.current = null;
       doSetError((error as Error).message);
       setUserContext({
         token: undefined,
@@ -193,7 +212,13 @@ const AuthContextProvider = ({
     [logoutUser],
   );
 
-  const userQuery = useGetUserQuery({ enabled: !!(token ?? '') });
+  const userQuery = useGetUserQuery({ 
+    enabled: !!(token ?? '') && isAuthenticated,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false
+  });
 
   const login = (data: t.TLoginUser) => {
     fetch('/api/auth/login', {
@@ -212,19 +237,15 @@ const AuthContextProvider = ({
           const error = result.message;
           throw new Error(error);
         }
-        
-        // Check if it's the new standardized response format
-        if (result.success && result.data) {
-          return result.data;
-        }
-        
-        // Handle direct response format (from backend)
-        return result;
+      
+        return result.data;
+      
       })
       .then((result) => {
         // Directly set user context here, do not call loginUser.mutate
         const { user, token, token_type } = result;
         console.log('🔧 Login successful, setting user context');
+        console.log('🔧 Token received:', token ? `${token.substring(0, 20)}...` : 'null');
         
         // Update state immediately
         setUser(user);
@@ -237,13 +258,30 @@ const AuthContextProvider = ({
         
         // Set token header for API requests
         setTokenHeader(token || '');
+        console.log('🔧 Token header set for API requests');
         
-        // Clear any stale conversation cache
-        // Note: We can't access the query client here, so we'll rely on the
-        // conversation queries to handle fresh data loading
+        // Reset refresh attempt flag to allow user query to run
+        refreshAttemptedRef.current = false;
+        
+        // Enable queries and invalidate conversation cache
+        setQueriesEnabled(true);
+        
+        // Add a small delay to ensure token header is set before queries run
+        setTimeout(() => {
+          console.log('🔧 Invalidating conversation cache after token set');
+          queryClient.invalidateQueries({
+            queryKey: [QueryKeys.allConversations],
+            refetchPage: (_, index) => index === 0,
+          });
+          
+          // Force refetch conversations immediately
+          queryClient.refetchQueries({
+            queryKey: [QueryKeys.allConversations],
+            type: 'active',
+          });
+        }, 100);
         
         setError(undefined);
-        refreshAttemptedRef.current = false; // Reset flag on successful login
         
         // Navigate directly instead of using setUserContext
         console.log('🔧 Navigating to /c/new after successful login');
@@ -263,22 +301,46 @@ const AuthContextProvider = ({
       return;
     }
     
+    // Prevent multiple simultaneous refresh attempts
+    if (refreshAttemptedRef.current) {
+      console.log('🔄 Refresh already attempted, skipping');
+      return;
+    }
+    
+    // Set a timeout to prevent infinite loops
+    refreshTimeoutRef.current = setTimeout(() => {
+      console.log('⏰ Refresh timeout reached, navigating to login');
+      clearStoredAuth();
+      navigate('/login');
+    }, 10000); // 10 second timeout
+    
     // If we have a stored token, use it instead of refreshing
     const storedToken = getStoredToken();
     if (storedToken && !token) {
       console.log('✅ Using stored token instead of refreshing');
       setToken(storedToken);
       setTokenHeader(storedToken);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
       return;
     }
     
     // If we have a current token, try to refresh it
     if (token) {
       console.log('🔄 Attempting token refresh...');
+      refreshAttemptedRef.current = true;
       // Set the token header before making the refresh request
       setTokenHeader(token);
       refreshToken.mutate(undefined, {
         onSuccess: (data: t.TRefreshTokenResponse | undefined) => {
+          // Clear timeout on success
+          if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+            refreshTimeoutRef.current = null;
+          }
+          
           // Handle both old and new response formats
           let user, token = '';
           if (data) {
@@ -310,6 +372,12 @@ const AuthContextProvider = ({
           }
         },
         onError: (error) => {
+          // Clear timeout on error
+          if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+            refreshTimeoutRef.current = null;
+          }
+          
           console.log('❌ refreshToken mutation error:', error);
           if (authConfig?.test === true) {
             return;
@@ -324,9 +392,13 @@ const AuthContextProvider = ({
     } else {
       // No token available, navigate to login
       console.log('🚪 No token available, navigating to login');
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
       navigate('/login');
     }
-  }, [token, authConfig, refreshToken, setUserContext, navigate]);
+  }, [token, isAuthenticated, isInitialized, authConfig, refreshToken, setUserContext, navigate, clearStoredAuth, setQueriesEnabled, queryClient]);
 
   // Initialize auth state from localStorage on mount
   useEffect(() => {
@@ -357,27 +429,56 @@ const AuthContextProvider = ({
     console.log('✅ Auth initialization complete');
   }, []);
 
+  // Consolidated auth state effect - only run when necessary
   useEffect(() => {
-    console.log('🔄 Auth state effect', { 
-      token: !!token, 
-      isAuthenticated, 
-      isInitialized,
-      userQueryData: !!userQuery.data,
-      userQueryError: !!userQuery.isError,
-      refreshAttempted: refreshAttemptedRef.current
-    });
+    const currentState = { token, isAuthenticated, isInitialized };
+    const previousState = authStateRef.current;
+    
+    // Only log if there's a meaningful change
+    const hasSignificantChange = 
+      previousState.token !== token || 
+      previousState.isAuthenticated !== isAuthenticated ||
+      previousState.isInitialized !== isInitialized;
+    
+    if (hasSignificantChange) {
+      console.log('🔄 Auth state effect', { 
+        token: !!token, 
+        isAuthenticated, 
+        isInitialized,
+        userQueryData: !!userQuery.data,
+        userQueryError: !!userQuery.isError,
+        refreshAttempted: refreshAttemptedRef.current
+      });
+    }
+    
+    // Update ref
+    authStateRef.current = currentState;
     
     if (userQuery.data) {
-      console.log('✅ User query data received');
+      // Check if we've already processed this user data to prevent infinite loops
+      if (lastProcessedUserDataRef.current === userQuery.data) {
+        if (hasSignificantChange) {
+          console.log('🔄 Skipping duplicate user data processing');
+        }
+        return;
+      }
+      
+      if (hasSignificantChange) {
+        console.log('✅ User query data received');
+      }
       setUser(userQuery.data);
+      lastProcessedUserDataRef.current = userQuery.data;
+      
       // Only set isAuthenticated to true if we have a token (user logged in)
       if (token) {
-        console.log('✅ User is authenticated (has token)');
+        if (hasSignificantChange) {
+          console.log('✅ User is authenticated (has token)');
+        }
         setIsAuthenticated(true);
-        
-
       } else {
-        console.log('❌ User has data but no token - not authenticated');
+        if (hasSignificantChange) {
+          console.log('❌ User has data but no token - not authenticated');
+        }
         setIsAuthenticated(false);
       }
       refreshAttemptedRef.current = false; // Reset flag on successful auth
@@ -387,8 +488,15 @@ const AuthContextProvider = ({
       // Clear invalid stored data
       clearStoredAuth();
       setIsAuthenticated(false);
-      // Try silent refresh when user query fails
-      silentRefresh();
+      // Only try silent refresh if we haven't already attempted it
+      if (!refreshAttemptedRef.current) {
+        console.log('🔄 Attempting silent refresh due to user query error');
+        refreshAttemptedRef.current = true;
+        silentRefresh();
+      } else {
+        console.log('🚪 Already attempted refresh, navigating to login');
+        navigate('/login');
+      }
     }
     
     if (error != null && error && isAuthenticated) {
@@ -397,11 +505,14 @@ const AuthContextProvider = ({
     
     // Only handle authentication state if we're initialized
     if (!isInitialized) {
-      console.log('⏳ Not initialized yet, skipping auth state handling');
+      if (hasSignificantChange) {
+        console.log('⏳ Not initialized yet, skipping auth state handling');
+      }
       return;
     }
     
     // Only handle authentication state changes, not initial setup
+    // Add guard to prevent infinite loop when user is already on login page
     if (isInitialized && !isAuthenticated && !token && !refreshAttemptedRef.current) {
       console.log('🚪 No token available, trying silent refresh before navigating to login');
       // Try silent refresh first, if it fails, navigate to login
@@ -412,7 +523,8 @@ const AuthContextProvider = ({
         silentRefresh();
       } else {
         console.log('🚪 No stored token, navigating to login');
-        refreshAttemptedRef.current = false; // Reset flag when navigating to login
+        // Set refreshAttempted to true to prevent infinite loop
+        refreshAttemptedRef.current = true;
         navigate('/login');
       }
     }
@@ -426,6 +538,10 @@ const AuthContextProvider = ({
     error,
     navigate,
     setUserContext,
+    silentRefresh,
+    doSetError,
+    clearStoredAuth,
+    queryClient,
   ]);
 
   useEffect(() => {
@@ -445,6 +561,32 @@ const AuthContextProvider = ({
       window.removeEventListener('tokenUpdated', handleTokenUpdate);
     };
   }, [setUserContext, user]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Invalidate conversation cache when user becomes authenticated - only once
+  useEffect(() => {
+    if (isAuthenticated && isInitialized) {
+      console.log('🔄 User authenticated, invalidating conversation cache');
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.allConversations],
+        refetchPage: (_, index) => index === 0,
+      });
+      
+      // Force refetch conversations immediately
+      queryClient.refetchQueries({
+        queryKey: [QueryKeys.allConversations],
+        type: 'active',
+      });
+    }
+  }, [isAuthenticated, isInitialized, queryClient]);
 
   // Make the provider update only when it should
   const memoedValue = useMemo(

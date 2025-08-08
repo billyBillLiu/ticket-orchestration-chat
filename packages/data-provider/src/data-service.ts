@@ -159,8 +159,8 @@ export const getStartupConfig = (): Promise<
     mcpCustomUserVars?: Record<string, { title: string; description: string }>;
   }
 > => {
-  console.log('🔧 getStartupConfig calling endpoint:', endpoints.config());
   return request.get(endpoints.config()).then((response: any) => {
+    // Only log the response, not the call itself to reduce noise
     console.log('🔧 getStartupConfig response:', response);
     // response is already the standardized response (because _get returns response.data)
     if (response?.data) {

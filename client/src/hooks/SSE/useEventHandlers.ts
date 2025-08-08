@@ -376,6 +376,11 @@ export default function useEventHandlers({
       let update = {} as TConversation;
       if (conversationId) {
         applyAgentTemplate(conversationId, submission.conversation.conversationId);
+        // Force refresh of conversation list to show new conversation
+        queryClient.invalidateQueries({
+          queryKey: [QueryKeys.allConversations],
+          refetchPage: (_, index) => index === 0,
+        });
       }
       if (setConversation && !isAddedRequest) {
         setConversation((prevState) => {
@@ -480,6 +485,11 @@ export default function useEventHandlers({
       const isNewConvo = conversation.conversationId !== submissionConvo.conversationId;
       if (isNewConvo) {
         removeConvoFromAllQueries(queryClient, submissionConvo.conversationId as string);
+        // Force refresh of conversation list to show new conversation
+        queryClient.invalidateQueries({
+          queryKey: [QueryKeys.allConversations],
+          refetchPage: (_, index) => index === 0,
+        });
       }
 
       /* Refresh title */

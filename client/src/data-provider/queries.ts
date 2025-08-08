@@ -127,6 +127,12 @@ export const useConversationsInfiniteQuery = (
       { isArchived, sortBy, sortDirection, tags, search },
     ],
     queryFn: async ({ pageParam }) => {
+      // Check if token is available
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      
       const response = await dataService.listConversations({
         isArchived,
         sortBy,
@@ -135,12 +141,15 @@ export const useConversationsInfiniteQuery = (
         search,
         cursor: pageParam?.toString(),
       });
+      
       // Handle standardized response format
       if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
-        if (response.success) {
-          return response.data;
+        const standardizedResponse = response as { success: boolean; data: any; message?: string };
+        if (standardizedResponse.success) {
+          // Extract conversations from data.conversations in standardized response
+          return standardizedResponse.data;
         } else {
-          throw new Error(response.message || 'API request failed');
+          throw new Error(standardizedResponse.message || 'API request failed');
         }
       }
       // If not standardized format, return as is (for backward compatibility)
@@ -150,6 +159,9 @@ export const useConversationsInfiniteQuery = (
     keepPreviousData: true,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
     ...config,
   });
 };

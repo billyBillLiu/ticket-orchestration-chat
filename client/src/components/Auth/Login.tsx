@@ -1,5 +1,5 @@
 import { useOutletContext, useSearchParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useAuthContext } from '~/hooks/AuthContext';
 import type { TLoginLayoutContext } from '~/common';
 import { ErrorMessage } from '~/components/Auth/ErrorMessage';
@@ -13,12 +13,23 @@ function Login() {
   const localize = useLocalize();
   const { error, setError, login } = useAuthContext();
   const { startupConfig } = useOutletContext<TLoginLayoutContext>();
+  const prevStartupConfigRef = useRef(startupConfig);
   
-  console.log('🔧 Login component:', { 
+  // Memoize the login component state to prevent unnecessary re-renders
+  const loginComponentState = useMemo(() => ({ 
     startupConfig: !!startupConfig, 
     emailLoginEnabled: startupConfig?.emailLoginEnabled,
     registrationEnabled: startupConfig?.registrationEnabled 
-  });
+  }), [startupConfig]);
+  
+  // Only log when there's an actual change
+  useEffect(() => {
+    const hasChanged = prevStartupConfigRef.current !== startupConfig;
+    if (hasChanged) {
+      console.log('🔧 Login component:', loginComponentState);
+      prevStartupConfigRef.current = startupConfig;
+    }
+  }, [startupConfig, loginComponentState]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   // Determine if auto-redirect should be disabled based on the URL parameter
@@ -38,11 +49,13 @@ function Login() {
   }, [disableAutoRedirect, searchParams, setSearchParams]);
 
   // Determine whether we should auto-redirect to OpenID.
-  const shouldAutoRedirect =
+  const shouldAutoRedirect = useMemo(() => 
     startupConfig?.openidLoginEnabled &&
     startupConfig?.openidAutoRedirect &&
     startupConfig?.serverDomain &&
-    !isAutoRedirectDisabled;
+    !isAutoRedirectDisabled,
+    [startupConfig?.openidLoginEnabled, startupConfig?.openidAutoRedirect, startupConfig?.serverDomain, isAutoRedirectDisabled]
+  );
 
   useEffect(() => {
     if (shouldAutoRedirect) {

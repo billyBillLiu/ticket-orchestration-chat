@@ -75,11 +75,39 @@ const Nav = memo(
           search: search.debouncedQuery || undefined,
         },
         {
-          enabled: isAuthenticated,
+          enabled: isAuthenticated && !!localStorage.getItem('auth_token'),
           staleTime: 30000,
           cacheTime: 300000,
+          refetchOnWindowFocus: false,
+          refetchOnReconnect: false,
         },
       );
+
+    // Remove excessive debug logging - only log on significant changes
+    const prevQueryState = useRef({ isAuthenticated, isLoading, isFetching, hasData: !!data });
+    useEffect(() => {
+      const currentState = { isAuthenticated, isLoading, isFetching, hasData: !!data };
+      const prevState = prevQueryState.current;
+      
+      const hasSignificantChange = 
+        prevState.isAuthenticated !== isAuthenticated ||
+        prevState.isLoading !== isLoading ||
+        prevState.isFetching !== isFetching ||
+        prevState.hasData !== !!data;
+      
+      if (hasSignificantChange) {
+        console.log('🔍 Conversation query state:', {
+          isAuthenticated,
+          isLoading,
+          isFetching,
+          hasData: !!data,
+          dataPages: data?.pages?.length || 0,
+          conversationsCount: data?.pages?.flatMap(page => page.conversations)?.length || 0
+        });
+      }
+      
+      prevQueryState.current = currentState;
+    }, [isAuthenticated, isLoading, isFetching, data]);
 
     const computedHasNextPage = useMemo(() => {
       if (data?.pages && data.pages.length > 0) {
