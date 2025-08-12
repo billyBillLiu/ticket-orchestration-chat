@@ -5,6 +5,7 @@ import { QueryKeys, Constants, dataService } from 'librechat-data-provider';
 import type { TConversation, TEndpointsConfig, TModelsConfig } from 'librechat-data-provider';
 import { buildDefaultConvo, getDefaultEndpoint, getEndpointField, logger } from '~/utils';
 import store from '~/store';
+import { useNewConvo } from '~/hooks';
 
 const useNavigateToConvo = (index = 0) => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const useNavigateToConvo = (index = 0) => {
   const setSubmission = useSetRecoilState(store.submissionByIndex(index));
   const clearAllLatestMessages = store.useClearLatestMessages(`useNavigateToConvo ${index}`);
   const { hasSetConversation, setConversation } = store.useCreateConversationAtom(index);
+  const { switchToConversation } = useNewConvo(index);
 
   const fetchFreshData = async (conversation?: Partial<TConversation>) => {
     const conversationId = conversation?.conversationId;
@@ -24,11 +26,25 @@ const useNavigateToConvo = (index = 0) => {
         dataService.getConversationById(conversationId),
       );
       logger.log('conversation', 'Fetched fresh conversation data', data);
-      setConversation(data);
+      
+      // Use switchToConversation to properly set up the conversation with model and endpoint information
+      // while preserving the existing conversation ID
+      switchToConversation(
+        data,
+        data as any,
+        undefined, // modelsData
+        true, // buildDefault
+        true, // keepLatestMessage
+        false, // keepAddedConvos
+        false, // disableFocus
+        false, // disableParams
+      );
+      
       navigate(`/c/${conversationId ?? Constants.NEW_CONVO}`, { state: { focusChat: true } });
     } catch (error) {
       console.error('Error fetching conversation data on navigation', error);
       if (conversation) {
+        // Fallback to direct setConversation if switchToConversation fails
         setConversation(conversation as TConversation);
         navigate(`/c/${conversationId}`, { state: { focusChat: true } });
       }
@@ -84,7 +100,17 @@ const useNavigateToConvo = (index = 0) => {
       queryClient.invalidateQueries([QueryKeys.conversation, convo.conversationId]);
       fetchFreshData(convo);
     } else {
-      setConversation(convo);
+      // Use switchToConversation for new conversations as well to ensure proper setup
+      switchToConversation(
+        convo,
+        convo as any,
+        undefined, // modelsData
+        true, // buildDefault
+        !resetLatestMessage, // keepLatestMessage
+        false, // keepAddedConvos
+        false, // disableFocus
+        false, // disableParams
+      );
       navigate(`/c/${convo.conversationId ?? Constants.NEW_CONVO}`, { state: { focusChat: true } });
     }
   };

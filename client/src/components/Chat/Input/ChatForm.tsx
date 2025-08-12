@@ -254,7 +254,7 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
               setBadges={setBadges}
             />
             <FileFormChat disableInputs={disableInputs} />
-            {endpoint && (
+            {(endpoint || conversation) && (
               <div className={cn('flex', isRTL ? 'flex-row-reverse' : 'flex-row')}>
                 <TextareaAutosize
                   {...registerProps}
@@ -304,7 +304,7 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
                 <AttachFileChat disableInputs={disableInputs} />
               </div>
               <BadgeRow
-                showEphemeralBadges={!isAgentsEndpoint(endpoint) && !isAssistantsEndpoint(endpoint)}
+                showEphemeralBadges={endpoint ? (!isAgentsEndpoint(endpoint) && !isAssistantsEndpoint(endpoint)) : true}
                 conversationId={conversationId}
                 onChange={setBadges}
                 isInChat={
@@ -325,7 +325,7 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
                 {(isSubmitting || isSubmittingAdded) && (showStopButton || showStopAdded) ? (
                   <StopButton stop={handleStopGenerating} setShowStopButton={setShowStopButton} />
                 ) : (
-                  endpoint && (
+                  (endpoint || conversation) && (
                     <SendButton
                       ref={submitButtonRef}
                       control={methods.control}
