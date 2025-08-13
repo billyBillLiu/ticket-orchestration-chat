@@ -27,13 +27,13 @@ const useNavigateToConvo = (index = 0) => {
       );
       logger.log('conversation', 'Fetched fresh conversation data', data);
       
-      // Use switchToConversation to properly set up the conversation with model and endpoint information
-      // while preserving the existing conversation ID
+      // Use switchToConversation with buildDefault: false to preserve the existing conversation ID
+      // and avoid rebuilding the conversation
       switchToConversation(
         data,
         data as any,
         undefined, // modelsData
-        true, // buildDefault
+        false, // buildDefault - don't rebuild, use the data as-is
         true, // keepLatestMessage
         false, // keepAddedConvos
         false, // disableFocus
@@ -105,7 +105,7 @@ const useNavigateToConvo = (index = 0) => {
         convo,
         convo as any,
         undefined, // modelsData
-        true, // buildDefault
+        true, // buildDefault - build default for new conversations
         !resetLatestMessage, // keepLatestMessage
         false, // keepAddedConvos
         false, // disableFocus
