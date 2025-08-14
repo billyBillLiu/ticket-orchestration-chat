@@ -27,6 +27,12 @@ const submissionKeysAtom = atom<(string | number)[]>({
   default: [],
 });
 
+// Add navigation state tracking
+const isNavigatingAtom = atom<boolean>({
+  key: 'isNavigating',
+  default: false,
+});
+
 const latestMessageFamily = atomFamily<TMessage | null, string | number | null>({
   key: 'latestMessageByIndex',
   default: null,
@@ -188,6 +194,12 @@ const isSubmittingFamily = atomFamily({
       });
     },
   ],
+});
+
+// Add navigation state tracking
+const isNavigatingFamily = atomFamily<boolean, string | number>({
+  key: 'isNavigatingByIndex',
+  default: false,
 });
 
 const optionSettingsFamily = atomFamily<TOptionSettings, string | number>({
@@ -394,6 +406,8 @@ export default {
   showStopButtonByIndex,
   abortScrollFamily,
   isSubmittingFamily,
+  isNavigatingAtom,
+  isNavigatingFamily,
   optionSettingsFamily,
   showAgentSettingsFamily,
   showPopoverFamily,

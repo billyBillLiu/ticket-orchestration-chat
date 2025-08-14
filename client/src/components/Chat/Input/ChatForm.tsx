@@ -52,6 +52,7 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
   const maximizeChatSpace = useRecoilValue(store.maximizeChatSpace);
   const centerFormOnLanding = useRecoilValue(store.centerFormOnLanding);
   const isTemporary = useRecoilValue(store.isTemporary);
+  const isNavigating = useRecoilValue(store.isNavigatingAtom);
 
   const [badges, setBadges] = useRecoilState(store.chatBadges);
   const [isEditingBadges, setIsEditingBadges] = useRecoilState(store.isEditingBadges);
@@ -216,6 +217,16 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
           : 'sm:mb-10',
       )}
     >
+      {isNavigating && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/5 backdrop-blur-sm rounded-lg">
+          <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-lg border">
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+              <span className="text-xs text-gray-600 dark:text-gray-400">Loading conversation...</span>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="relative flex h-full flex-1 items-stretch md:flex-col">
         <div className={cn('flex w-full items-center', isRTL && 'flex-row-reverse')}>
           {showPlusPopover && !isAssistantsEndpoint(endpoint) && (
