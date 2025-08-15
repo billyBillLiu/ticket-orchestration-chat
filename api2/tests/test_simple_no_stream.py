@@ -44,7 +44,7 @@ def test_chat():
     
     try:
         response = requests.post(
-            f"{BASE_URL}/api/ask/openAI",
+            f"{BASE_URL}/api/ask/custom",
             headers=headers,
             json=test_data,
             stream=False  # Don't stream

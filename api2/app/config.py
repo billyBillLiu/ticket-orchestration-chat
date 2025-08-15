@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional, List
 import os
+from .constants import DEFAULT_MODEL
 
 class Settings(BaseSettings):
     # App settings
@@ -23,6 +24,11 @@ class Settings(BaseSettings):
     # Database settings
     database_url: Optional[str] = None
     
+    # LLM Settings
+    llm_provider: str = "ollama"
+    ollama_base_url: str = "http://localhost:11434"
+    default_model: str = DEFAULT_MODEL
+
     # JWT settings
     secret_key: str = "your-secret-key-here"
     algorithm: str = "HS256"

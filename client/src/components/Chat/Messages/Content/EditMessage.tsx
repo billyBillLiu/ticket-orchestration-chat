@@ -9,6 +9,7 @@ import { cn, removeFocusRings } from '~/utils';
 import { useLocalize } from '~/hooks';
 import Container from './Container';
 import store from '~/store';
+import { DEFAULT_MODEL } from '~/constants';
 
 const EditMessage = ({
   text,
@@ -96,7 +97,7 @@ const EditMessage = ({
     }
     updateMessageMutation.mutate({
       conversationId: conversationId ?? '',
-      model: conversation?.model ?? 'gpt-3.5-turbo',
+      model: conversation?.model ?? DEFAULT_MODEL,
       text: data.text,
       messageId,
     });

@@ -93,23 +93,19 @@ async def api_info():
     }
 
 # Import and include route modules
-# TODO: Add other routes here: presets, keys, agents, roles, search, banner
 from app.routes import auth, config, endpoints, user, conversations, models, files, messages, memory, stubs
-app.include_router(auth.router, prefix="/api")
-app.include_router(config.router, prefix="/api")
-app.include_router(stubs.router, prefix="/api")
-app.include_router(endpoints.router, prefix="/api")
-app.include_router(user.router, prefix="/api")
-app.include_router(conversations.router, prefix="/api/convos")
-app.include_router(models.router, prefix="/api")
-app.include_router(files.router, prefix="/api")
-app.include_router(stubs.router, prefix="/api")
-app.include_router(stubs.router, prefix="/api")
-app.include_router(stubs.router, prefix="/api")
-app.include_router(stubs.router, prefix="/api")
-app.include_router(stubs.router, prefix="/api")
-app.include_router(messages.router, prefix="/api/convos")
-app.include_router(memory.router, prefix="/api/memory")
+
+# Register all API routes
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+app.include_router(config.router, prefix="/api", tags=["Configuration"])
+app.include_router(endpoints.router, prefix="/api", tags=["Endpoints"])
+app.include_router(user.router, prefix="/api", tags=["Users"])
+app.include_router(conversations.router, prefix="/api/convos", tags=["Conversations"])
+app.include_router(models.router, prefix="/api", tags=["Models"])
+app.include_router(files.router, prefix="/api", tags=["Files"])
+app.include_router(messages.router, prefix="/api/convos", tags=["Messages"])
+app.include_router(memory.router, prefix="/api/memory", tags=["Memory"])
+app.include_router(stubs.router, prefix="/api", tags=["Stubs"])
 
 # TODO: Import and include route modules here
 # from app.routes import auth, users, conversations, messages, agents, assistants

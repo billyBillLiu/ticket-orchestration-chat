@@ -286,6 +286,8 @@ export const getResponseSender = (endpointOption: t.TEndpointOption): string => 
     return 'PaLM2';
   }
 
+
+
   if (endpoint === EModelEndpoint.custom || endpointType === EModelEndpoint.custom) {
     if (modelLabel) {
       return modelLabel;

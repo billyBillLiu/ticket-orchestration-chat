@@ -22,8 +22,9 @@ async def get_config():
             "multiUser": True
         },
         "endpoints": {
-            "openAI": True,
-            "anthropic": True,
+            "custom": True,
+            "openAI": False,
+            "anthropic": False,
             "google": False,
             "azure": False
         }
@@ -51,8 +52,9 @@ async def get_startup_config():
             "multiUser": True
         },
         "endpoints": {
-            "openAI": True,
-            "anthropic": True,
+            "custom": True,
+            "openAI": False,
+            "anthropic": False,
             "google": False,
             "azure": False
         }

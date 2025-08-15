@@ -20,7 +20,7 @@ def test_endpoint():
     # Test without authentication first
     try:
         response = requests.post(
-            "http://localhost:3080/api/ask/openAI",
+            "http://localhost:3080/api/ask/custom",
             json=test_data
         )
         print(f"Status without auth: {response.status_code}")
@@ -36,7 +36,7 @@ def test_endpoint():
         }
         
         response = requests.post(
-            "http://localhost:3080/api/ask/openAI",
+            "http://localhost:3080/api/ask/custom",
             headers=headers,
             json=test_data
         )

@@ -47,7 +47,7 @@ def test_chat_with_real_token():
         print(f"Chat request data: {json.dumps(chat_data, indent=2)}")
         
         chat_response = requests.post(
-            "http://localhost:8000/api/ask/openAI",
+            "http://localhost:8000/api/ask/custom",
             headers=headers,
             json=chat_data,
             stream=False

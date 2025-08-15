@@ -110,6 +110,8 @@ class ApiResponse(BaseModel):
         )
 
 
+
+
 """ These are the global exception handlers (for when FastAPI throws an error) used in main.py"""
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     # For validation errors (Code 422)
@@ -123,7 +125,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     # For HTTP errors (Code 400, 401, 403, 404, 500)
-    logger.warning(f"HTTP exception: {exc.detail}")
+    
+    # Don't log 404 errors at all (server already notifies of responses)
+    # Only log other errors as warnings
+    if exc.status_code != 404:
+        logger.warning(f"HTTP exception ({exc.status_code}): {exc.detail}")
     
     response = ApiResponse.create_error(
         message=str(exc.detail),

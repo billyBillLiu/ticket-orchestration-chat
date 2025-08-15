@@ -21,7 +21,7 @@ TODO:
     GET /endpoints - Returns direct dictionary: endpoints_data
     GET /test - Returns direct dictionary: {"message": "Test endpoint works!"}
     GET /messages/{conversation_id} - Returns direct list: result
-    POST /ask/openAI - Returns StreamingResponse (SSE format, not ApiResponse)
+    POST /ask/custom - Returns StreamingResponse (SSE format, not ApiResponse)
 4. messages.py
     GET /{conversation_id}/messages - Returns MessageListResponse (Pydantic model, not ApiResponse)
     POST /{conversation_id}/messages - Returns MessageResponse (Pydantic model, not ApiResponse)

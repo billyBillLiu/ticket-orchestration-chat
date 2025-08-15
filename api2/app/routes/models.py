@@ -6,10 +6,10 @@ router = APIRouter()
 async def get_models():
     # Return models in the format the frontend expects
     models_data = {
-        "openAI": [
-            "gpt-3.5-turbo",
-            "gpt-4",
-            "gpt-4o",
+        "custom": [
+            "deepseek-r1:8b",
+            "llama2:7b",
+            "mistral:7b",
         ]
     }
     return models_data 

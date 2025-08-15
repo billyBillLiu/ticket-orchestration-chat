@@ -45,11 +45,15 @@ export default function useSelectorEffects({
       const agent = agentsMap?.[agent_id];
 
       if (agent !== undefined) {
-        setOption('model')('');
+        // Only reset model to empty if there's no existing model selected
+        // This prevents the model from being unselected after sending a message
+        if (!conversation?.model) {
+          setOption('model')('');
+        }
         setOption('agent_id')(agent_id);
       }
     }
-  }, [index, agents, selectedAgentId, agentsMap, endpoint, setOption]);
+  }, [index, agents, selectedAgentId, agentsMap, endpoint, setOption, conversation?.model]);
   useEffect(() => {
     if (!isAssistantsEndpoint(endpoint as string)) {
       return;
@@ -104,9 +108,14 @@ export default function useSelectorEffects({
         });
         return;
       }
+      
+      // For custom endpoints and other regular endpoints, preserve the model selection
+      // This prevents the model from being unselected after sending a message
+      const currentModel = conversation.model || '';
+      
       debouncedSetSelectedValues({
         endpoint: conversation.endpoint || '',
-        model: conversation.model || '',
+        model: currentModel,
         modelSpec: conversation.spec || '',
       });
     }

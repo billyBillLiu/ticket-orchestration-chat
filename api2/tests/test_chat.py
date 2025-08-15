@@ -44,7 +44,7 @@ async def test_chat():
     
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            f"{BASE_URL}/api/ask/openAI",
+            f"{BASE_URL}/api/ask/custom",
             headers=headers,
             json=test_data
         ) as response:

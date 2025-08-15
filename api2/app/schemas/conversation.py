@@ -29,9 +29,8 @@ class ConversationResponse(BaseModel):
         return v
 
     class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
         from_attributes = True
+        populate_by_name = True
 
 class ConversationListResponse(BaseModel):
     conversations: List[ConversationResponse]

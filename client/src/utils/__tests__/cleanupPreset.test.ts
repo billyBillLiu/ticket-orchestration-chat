@@ -1,6 +1,7 @@
 import { EModelEndpoint } from 'librechat-data-provider';
 import cleanupPreset from '../cleanupPreset';
 import type { TPreset } from 'librechat-data-provider';
+import { DEFAULT_MODEL } from '~/constants';
 
 // Mock parseConvo since we're focusing on testing the chatGptLabel migration logic
 jest.mock('librechat-data-provider', () => ({
@@ -10,7 +11,7 @@ jest.mock('librechat-data-provider', () => ({
     const { conversation } = input;
     return {
       ...conversation,
-      model: conversation?.model || 'gpt-3.5-turbo',
+      model: conversation?.model || DEFAULT_MODEL,
     };
   }),
 }));

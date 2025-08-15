@@ -13,6 +13,8 @@ Work in progress. Currently migrating backend from Node to FastAPI
 ### Cursor Rule Ideas:  
 - Reminder to use venv  
 - Reminder of which folder is frontend and which is backend  
+- Reminder of what shell you are using
+- Reminder to put tests in test folder
 
 ## Local Dev:
 - cp .env.example .env && cp librechat.example.yaml librechat.yaml

@@ -511,8 +511,15 @@ export default function useEventHandlers({
             ...prevState,
             ...(conversation as TConversation),
           };
+          // Enhanced model preservation logic for custom endpoints
           if (prevState?.model != null && prevState.model !== submissionConvo.model) {
             update.model = prevState.model;
+          } else if (submissionConvo.endpoint === 'custom' && prevState?.model) {
+            // For custom endpoints, always preserve the model if it exists in prevState
+            update.model = prevState.model;
+          } else if (submissionConvo.endpoint === 'custom' && !update.model && submissionConvo.model) {
+            // For custom endpoints, ensure the model from submission is preserved
+            update.model = submissionConvo.model;
           }
           const cachedConvo = queryClient.getQueryData<TConversation>([
             QueryKeys.conversation,

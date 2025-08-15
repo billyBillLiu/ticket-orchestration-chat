@@ -30,7 +30,7 @@ class MessageResponse(BaseModel):
     error: bool = False
     isEdited: bool = False
     model: Optional[str] = None
-    endpoint: str = "openAI"
+    endpoint: str = "custom"
 
     @field_validator('messageId', 'conversationId', mode='before')
     @classmethod
@@ -40,9 +40,8 @@ class MessageResponse(BaseModel):
         return v
 
     class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
         from_attributes = True
+        populate_by_name = True
 
 class MessageListResponse(BaseModel):
     messages: List[MessageResponse]
