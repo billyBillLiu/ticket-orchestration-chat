@@ -8,7 +8,9 @@ Work in progress. Currently migrating backend from Node to FastAPI
 - Use agents to create tickets
 - Implement Archive Comvos
 - Remove Other Useless Features (forking, right-side bar etc.)
-- E2E Testing
+- Refactor/Simplify existing features (models/endpoints and such)
+- Fix E2E Testing
+
 
 ### Cursor Rule Ideas:  
 - Reminder to use venv  
