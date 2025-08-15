@@ -118,6 +118,11 @@ export default function useSSE(
     });
 
     sse.addEventListener('message', (e: MessageEvent) => {
+      // Check if the message is the [DONE] signal
+      if (e.data === '[DONE]') {
+        return;
+      }
+
       const data = JSON.parse(e.data);
 
       if (data.final != null) {
