@@ -56,7 +56,7 @@ export default function useSubmitMessage() {
       const currentConversationId = conversation?.conversationId;
       
       // Validate that we have a valid conversation context
-      if (!currentConversationId || currentConversationId === Constants.NEW_CONVO) {
+      if (!currentConversationId) {
         console.warn('No valid conversation context for message submission', {
           currentConversationId,
           conversation
