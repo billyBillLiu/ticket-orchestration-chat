@@ -32,28 +32,6 @@ Work in progress. Currently migrating backend from Node to FastAPI
 - cd ../client && npm run build && cd ../api2 && python -m uvicorn main:app --host 0.0.0.0 --port 3080  
 
 ## Temporary Notes:
-### LLM Integration:
-Add to api2/requirements.txt:
-- ollama - For running local models via Ollama
-- openai - For OpenAI API compatibility layer
-- transformers - For Hugging Face models
-- torch - For PyTorch backend
-- accelerate - For optimized inference
-
-Create api2/app/services/llm_service.py:
-- This is an abstract LLM interface
-- Use Ollama integration for local models
-- Model management
-- Response streaming
-
-Replace api2/app/routes/endopoints.py placeholders:
-- the ask endpoint. replace the hardcoded messages.
-- implement proper streaming responses
-
-Add to api2/app/config.py:
-- LLM provider settings
-- Model configs
-- Local model path
 
 ### Agent Integration:
 Create api2/app/models/agent.py:
