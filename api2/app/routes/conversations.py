@@ -425,33 +425,4 @@ async def fork_conversation(
             detail=f"Error forking conversation: {str(e)}"
         )
 
-@router.post("/duplicate")
-async def duplicate_conversation(
-    conversationId: str,
-    title: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Duplicate a conversation.
-    Note: This is a stub implementation - you may want to implement actual duplication logic.
-    """
-    try:
-        # For now, return a placeholder response
-        # In a real implementation, you would create a copy of the conversation
-        duplicated_conversation_id = f"duplicated_{conversationId}"
-        
-        return ApiResponse.create_success(
-            data={
-                "conversationId": duplicated_conversation_id,
-                "title": title or f"Copy of conversation {conversationId}",
-                "message": "Conversation duplicated successfully"
-            },
-            message="Conversation duplicated successfully"
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error duplicating conversation: {str(e)}"
-        ) 
+ 

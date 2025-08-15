@@ -90,7 +90,7 @@ export const importConversation = () => `${conversationsRoot}/import`;
 
 export const forkConversation = () => `${conversationsRoot}/fork`;
 
-export const duplicateConversation = () => `${conversationsRoot}/duplicate`;
+
 
 export const search = (q: string, cursor?: string | null) =>
   `/api/search?q=${q}${cursor ? `&cursor=${cursor}` : ''}`;

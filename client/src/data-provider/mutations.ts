@@ -546,35 +546,7 @@ export const useDeleteConversationMutation = (
   );
 };
 
-export const useDuplicateConversationMutation = (
-  options?: t.DuplicateConvoOptions,
-): UseMutationResult<t.TDuplicateConvoResponse, unknown, t.TDuplicateConvoRequest, unknown> => {
-  const queryClient = useQueryClient();
-  const { onSuccess, ..._options } = options ?? {};
-  return useMutation((payload) => dataService.duplicateConversation(payload), {
-    onSuccess: (data, vars, context) => {
-      const duplicatedConversation = data.conversation;
-      if (!duplicatedConversation?.conversationId) {
-        return;
-      }
-      queryClient.setQueryData(
-        [QueryKeys.conversation, duplicatedConversation.conversationId],
-        duplicatedConversation,
-      );
-      addConvoToAllQueries(queryClient, duplicatedConversation);
-      queryClient.setQueryData(
-        [QueryKeys.messages, duplicatedConversation.conversationId],
-        data.messages,
-      );
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.allConversations],
-        refetchPage: (_, index) => index === 0,
-      });
-      onSuccess?.(data, vars, context);
-    },
-    ..._options,
-  });
-};
+
 
 export const useForkConvoMutation = (
   options?: t.ForkConvoOptions,

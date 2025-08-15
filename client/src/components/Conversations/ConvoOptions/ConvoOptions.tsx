@@ -1,10 +1,9 @@
 import { useState, useId, useRef, memo, useCallback, useMemo } from 'react';
 import * as Menu from '@ariakit/react/menu';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Ellipsis, Share2, Copy, Archive, Pen, Trash } from 'lucide-react';
+import { Ellipsis, Share2, Archive, Pen, Trash } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import {
-  useDuplicateConversationMutation,
   useGetStartupConfig,
   useArchiveConvoMutation,
 } from '~/data-provider';
@@ -50,30 +49,7 @@ function ConvoOptions({
 
   const archiveConvoMutation = useArchiveConvoMutation();
 
-  const duplicateConversation = useDuplicateConversationMutation({
-    onSuccess: (data) => {
-      navigateToConvo(data.conversation);
-      showToast({
-        message: localize('com_ui_duplication_success'),
-        status: 'success',
-      });
-      setIsPopoverActive(false);
-    },
-    onMutate: () => {
-      showToast({
-        message: localize('com_ui_duplication_processing'),
-        status: 'info',
-      });
-    },
-    onError: () => {
-      showToast({
-        message: localize('com_ui_duplication_error'),
-        status: 'error',
-      });
-    },
-  });
 
-  const isDuplicateLoading = duplicateConversation.isLoading;
   const isArchiveLoading = archiveConvoMutation.isLoading;
 
   const handleShareClick = useCallback(() => {
@@ -122,11 +98,7 @@ function ConvoOptions({
     localize,
   ]);
 
-  const handleDuplicateClick = useCallback(() => {
-    duplicateConversation.mutate({
-      conversationId: conversationId ?? '',
-    });
-  }, [conversationId, duplicateConversation]);
+
 
   const dropdownItems = useMemo(
     () => [
@@ -144,16 +116,7 @@ function ConvoOptions({
         onClick: renameHandler,
         icon: <Pen className="icon-sm mr-2 text-text-primary" />,
       },
-      {
-        label: localize('com_ui_duplicate'),
-        onClick: handleDuplicateClick,
-        hideOnClick: false,
-        icon: isDuplicateLoading ? (
-          <Spinner className="size-4" />
-        ) : (
-          <Copy className="icon-sm mr-2 text-text-primary" />
-        ),
-      },
+
       {
         label: localize('com_ui_archive'),
         onClick: handleArchiveClick,
@@ -178,8 +141,6 @@ function ConvoOptions({
       handleShareClick,
       startupConfig,
       renameHandler,
-      handleDuplicateClick,
-      isDuplicateLoading,
       handleArchiveClick,
       isArchiveLoading,
       handleDeleteClick,
