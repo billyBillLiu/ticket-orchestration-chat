@@ -3,11 +3,10 @@ This is a AI Chat that orchestrates ticket creation based on the user's needs. I
 Work in progress. Currently migrating backend from Node to FastAPI
 
 ### TODO:
-- Implement Archive Comvos
-- Implement Delete Convos
 - Connect LLM
 - Agents
 - Use agents to create tickets
+- Implement Archive Comvos
 - Remove Other Useless Features (forking, right-side bar etc.)
 - E2E Testing
 
