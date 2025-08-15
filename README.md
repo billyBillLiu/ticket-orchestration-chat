@@ -5,14 +5,17 @@ Work in progress. Currently migrating backend from Node to FastAPI
 ### TODO:
 - Implement Archive Comvos
 - Implement Delete Convos
+- Connect LLM
 - Agents
+- Use agents to create tickets
+- Remove Other Useless Features (forking, right-side bar etc.)
 - E2E Testing
 
 ### Cursor Rule Ideas:  
 - Reminder to use venv  
 - Reminder of which folder is frontend and which is backend  
 
-### When Starting:
+## Local Dev:
 - cp .env.example .env && cp librechat.example.yaml librechat.yaml
 - npm install
 - cd api2 && python -m venv .venv && pip install -r requirements.txt
