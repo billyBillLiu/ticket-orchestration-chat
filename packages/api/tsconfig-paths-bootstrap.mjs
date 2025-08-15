@@ -20,4 +20,4 @@ export function resolve(specifier, context, defaultResolve) {
 
 // @ts-ignore
 export { load, getFormat, transformSource } from 'ts-node/esm';
-// node -r dotenv/config --loader ./tsconfig-paths-bootstrap.mjs --experimental-specifier-resolution=node ../../api/demo/everything.ts
+// node -r dotenv/config --loader ./tsconfig-paths-bootstrap.mjs --experimental-specifier-resolution=node ../../api2/main.py

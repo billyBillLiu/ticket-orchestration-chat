@@ -30,7 +30,7 @@ services:
     #     target: /app/librechat.yaml
     #   - ./images:/app/client/public/images
     #   - ./uploads:/app/uploads
-    #   - ./logs:/app/api/logs
+    #   - ./logs:/app/api2/logs
 
   fastapi:
     build:

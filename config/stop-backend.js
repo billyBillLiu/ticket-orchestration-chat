@@ -10,7 +10,7 @@ async function main() {
       console.red('The backend process has been terminated');
       await execAsync('taskkill /F /IM node.exe /T');
     } else {
-      await execAsync('pkill -f api/server/index.js');
+      await execAsync('pkill -f api2/main.py');
       console.orange('The backend process has been terminated');
     }
   } catch (err) {

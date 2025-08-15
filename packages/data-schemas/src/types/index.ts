@@ -5,7 +5,7 @@ export * from './user';
 export * from './token';
 export * from './convo';
 export * from './session';
-export * from './balance';
+// export * from './balance'; // Removed balance
 export * from './banner';
 export * from './message';
 export * from './agent';

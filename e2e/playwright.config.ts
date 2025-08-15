@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
-const absolutePath = path.resolve(process.cwd(), 'api/server/index.js');
+const absolutePath = path.resolve(process.cwd(), 'api2/main.py');
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -53,7 +53,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: `node ${absolutePath}`,
+    command: `python ${absolutePath}`,
     port: 3080,
     stdout: 'pipe',
     ignoreHTTPSErrors: true,

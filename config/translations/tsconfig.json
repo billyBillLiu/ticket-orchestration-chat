@@ -10,7 +10,7 @@
     "module": "esnext",
     "lib": ["dom", "es6"],
     "paths": {
-      "~/*": ["../../api/*"]
+      "~/*": ["../../api2/*"]
     }
   },
   "include": ["*.ts"]

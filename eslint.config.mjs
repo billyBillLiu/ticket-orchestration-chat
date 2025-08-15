@@ -34,7 +34,7 @@ export default [
       'packages/api/types/**/*',
       'packages/api/dist/**/*',
       'packages/api/test_bundle/**/*',
-      'api/demo/**/*',
+      'api2/**/*',
       'packages/data-provider/types/**/*',
       'packages/data-provider/dist/**/*',
       'packages/data-provider/test_bundle/**/*',
@@ -314,7 +314,7 @@ export default [
     },
   },
   {
-    files: ['./api/demo/**/*.ts'],
+    files: ['./api2/**/*.py'],
   },
   {
     files: ['./packages/api/**/*.ts'],
@@ -341,7 +341,7 @@ export default [
     },
   },
   {
-    files: ['./api/demo/specs/**/*.ts'],
+    files: ['./api2/tests/**/*.py'],
     languageOptions: {
       ecmaVersion: 5,
       sourceType: 'script',

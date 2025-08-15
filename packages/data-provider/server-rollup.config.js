@@ -5,8 +5,8 @@ import alias from '@rollup/plugin-alias';
 import json from '@rollup/plugin-json';
 
 const rootPath = path.resolve(__dirname, '../../');
-const rootServerPath = path.resolve(__dirname, '../../api');
-const entryPath = path.resolve(rootPath, 'api/server/index.js');
+const rootServerPath = path.resolve(__dirname, '../../api2');
+const entryPath = path.resolve(rootPath, 'api2/main.py');
 
 console.log('entryPath', entryPath);
 

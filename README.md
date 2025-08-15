@@ -4,3 +4,9 @@ Work in progress. Currently migrating backend from Node to FastAPI
 
 Implement Archive Comvos
 Implement Delete Convos
+Agents
+E2E Testing
+
+Cursor Rule Ideas:
+Reminder to use venv
+Reminder of which folder is frontend and which is backend

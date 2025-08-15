@@ -1,5 +1,5 @@
 import mongoose, { FilterQuery } from 'mongoose';
-import type { IUser, BalanceConfig, UserCreateData, UserUpdateResult } from '~/types';
+import type { IUser, UserCreateData, UserUpdateResult } from '~/types';
 import { signPayload } from '~/crypto';
 
 /** Factory function that takes mongoose instance and returns the methods */
@@ -32,12 +32,10 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
    */
   async function createUser(
     data: UserCreateData,
-    balanceConfig?: BalanceConfig,
     disableTTL: boolean = true,
     returnUser: boolean = false,
   ): Promise<mongoose.Types.ObjectId | Partial<IUser>> {
     const User = mongoose.models.User;
-    const Balance = mongoose.models.Balance;
 
     const userData: Partial<IUser> = {
       ...data,
@@ -50,39 +48,7 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
 
     const user = await User.create(userData);
 
-    // If balance is enabled, create or update a balance record for the user
-    if (balanceConfig?.enabled && balanceConfig?.startBalance) {
-      const update: {
-        $inc: { tokenCredits: number };
-        $set?: {
-          autoRefillEnabled: boolean;
-          refillIntervalValue: number;
-          refillIntervalUnit: string;
-          refillAmount: number;
-        };
-      } = {
-        $inc: { tokenCredits: balanceConfig.startBalance },
-      };
-
-      if (
-        balanceConfig.autoRefillEnabled &&
-        balanceConfig.refillIntervalValue != null &&
-        balanceConfig.refillIntervalUnit != null &&
-        balanceConfig.refillAmount != null
-      ) {
-        update.$set = {
-          autoRefillEnabled: true,
-          refillIntervalValue: balanceConfig.refillIntervalValue,
-          refillIntervalUnit: balanceConfig.refillIntervalUnit,
-          refillAmount: balanceConfig.refillAmount,
-        };
-      }
-
-      await Balance.findOneAndUpdate({ user: user._id }, update, {
-        upsert: true,
-        new: true,
-      }).lean();
-    }
+    // Balance functionality removed
 
     if (returnUser) {
       return user.toObject() as Partial<IUser>;

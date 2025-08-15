@@ -1,7 +1,7 @@
 import { PlaywrightTestConfig } from '@playwright/test';
 import mainConfig from './playwright.config';
 import path from 'path';
-const absolutePath = path.resolve(process.cwd(), 'api/server/index.js');
+const absolutePath = path.resolve(process.cwd(), 'api2/main.py');
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -12,7 +12,7 @@ const config: PlaywrightTestConfig = {
   globalTeardown: require.resolve('./setup/global-teardown.local'),
   webServer: {
     ...mainConfig.webServer,
-    command: `node ${absolutePath}`,
+    command: `python ${absolutePath}`,
     env: {
       ...process.env,
       SEARCH: 'false',

@@ -1,7 +1,7 @@
 import { createUserModel } from './user';
 import { createTokenModel } from './token';
 import { createSessionModel } from './session';
-import { createBalanceModel } from './balance';
+// import { createBalanceModel } from './balance'; // Removed balance
 import { createConversationModel } from './convo';
 import { createMessageModel } from './message';
 import { createAgentModel } from './agent';
@@ -30,7 +30,7 @@ export function createModels(mongoose: typeof import('mongoose')) {
     User: createUserModel(mongoose),
     Token: createTokenModel(mongoose),
     Session: createSessionModel(mongoose),
-    Balance: createBalanceModel(mongoose),
+    // Balance: createBalanceModel(mongoose), // Removed balance
     Conversation: createConversationModel(mongoose),
     Message: createMessageModel(mongoose),
     Agent: createAgentModel(mongoose),

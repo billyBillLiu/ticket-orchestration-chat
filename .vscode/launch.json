@@ -2,11 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "type": "python",
       "request": "launch",
       "name": "Launch LibreChat (debug)",
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/api/server/index.js",
+      "program": "${workspaceFolder}/api2/main.py",
       "env": {
         "NODE_ENV": "production"
       },

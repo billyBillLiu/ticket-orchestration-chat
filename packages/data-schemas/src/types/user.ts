@@ -37,14 +37,14 @@ export interface IUser extends Document {
   updatedAt?: Date;
 }
 
-export interface BalanceConfig {
-  enabled?: boolean;
-  startBalance?: number;
-  autoRefillEnabled?: boolean;
-  refillIntervalValue?: number;
-  refillIntervalUnit?: string;
-  refillAmount?: number;
-}
+// export interface BalanceConfig {
+//   enabled?: boolean;
+//   startBalance?: number;
+//   autoRefillEnabled?: boolean;
+//   refillIntervalValue?: number;
+//   refillIntervalUnit?: string;
+//   refillAmount?: number;
+// } // Removed balance
 
 export interface UserCreateData extends Partial<IUser> {
   email: string;

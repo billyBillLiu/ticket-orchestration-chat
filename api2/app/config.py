@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # Server settings
     host: str = "localhost"
-    port: int = 8000            # localhost:8000
+    port: int = 3080            # localhost:3080
     
     # CORS settings
     allowed_origins: List[str] = [
@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Allow extra fields from .env file
 
 # Create settings instance
 settings = Settings()
