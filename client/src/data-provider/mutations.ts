@@ -56,8 +56,26 @@ export const useUpdateConversationMutation = (
     (payload: t.TUpdateConversationRequest) => dataService.updateConversation(payload),
     {
       onSuccess: (updatedConvo) => {
+        // Update the individual conversation query
         queryClient.setQueryData([QueryKeys.conversation, id], updatedConvo);
-        updateConvoInAllQueries(queryClient, id, () => updatedConvo);
+        
+        // Update all conversation lists with the new data
+        updateConvoInAllQueries(queryClient, id, (currentConvo) => ({
+          ...currentConvo,
+          ...updatedConvo,
+        }));
+        
+        // Also update the conversation in the current conversation state if it's active
+        const currentConvo = queryClient.getQueryData([QueryKeys.conversation, id]);
+        if (currentConvo) {
+          queryClient.setQueryData([QueryKeys.conversation, id], {
+            ...currentConvo,
+            ...updatedConvo,
+          });
+        }
+        
+        // Force refresh the conversation list to ensure UI updates
+        queryClient.invalidateQueries([QueryKeys.allConversations]);
       },
     },
   );

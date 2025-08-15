@@ -82,6 +82,14 @@ export default function Conversation({
         conversationId,
         title: newTitle.trim() || localize('com_ui_untitled'),
       });
+      
+      // Show success toast
+      showToast({
+        message: localize('com_ui_rename_successful'),
+        severity: NotificationSeverity.SUCCESS,
+        showIcon: true,
+      });
+      
       setRenaming(false);
     } catch (error) {
       setTitleInput(title as string);

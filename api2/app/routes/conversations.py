@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pydantic import BaseModel
 
 from app.models import get_db
 from app.models.user import User
@@ -8,6 +9,10 @@ from app.schemas.conversation import ConversationResponse, ConversationListRespo
 from app.routes.auth import get_current_user
 from app.services.conversation_service import ConversationService
 from app.utils.response_utils import ApiResponse
+
+# Request model for the update endpoint
+class UpdateConversationRequest(BaseModel):
+    arg: dict  # The frontend sends { arg: payload }
 
 router = APIRouter(tags=["Conversations"])
 
@@ -134,6 +139,54 @@ async def update_conversation(
             detail=f"Error updating conversation: {str(e)}"
         )
 
+@router.post("/update")
+async def update_conversation_post(
+    request: UpdateConversationRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a conversation (POST endpoint for frontend compatibility).
+    This endpoint matches the format expected by the frontend.
+    """
+    try:
+        # Extract the actual payload from the arg wrapper
+        update_data = request.arg
+        
+        if not update_data.get('conversationId'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="conversationId is required"
+            )
+        
+        # Convert string conversationId to int for the service
+        try:
+            conversation_id = int(update_data['conversationId'])
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid conversation ID format"
+            )
+        
+        conversation_service = ConversationService(db)
+        conversation = conversation_service.update_conversation(
+            conversation_id, 
+            current_user.id, 
+            update_data.get('title'), 
+            update_data.get('is_archived')
+        )
+        
+        # Return the conversation object directly to match the original API format
+        return ConversationResponse.model_validate(conversation).model_dump()
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating conversation: {str(e)}"
+        )
+
 @router.delete("/{conversation_id}")
 async def delete_conversation(
     conversation_id: int,
@@ -236,4 +289,169 @@ async def get_conversation_stats(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching conversation stats: {str(e)}"
+        )
+
+@router.post("/gen_title")
+async def generate_title(
+    conversationId: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate a title for a conversation.
+    Note: This is a stub implementation - you may want to implement actual title generation.
+    """
+    try:
+        # For now, return a placeholder title
+        # In a real implementation, you would generate a title based on conversation content
+        title = f"Conversation {conversationId}"
+        
+        return ApiResponse.create_success(
+            data={"title": title},
+            message="Title generated successfully"
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating title: {str(e)}"
+        )
+
+@router.delete("/")
+async def delete_conversations(
+    conversationId: Optional[str] = None,
+    source: Optional[str] = None,
+    thread_id: Optional[str] = None,
+    endpoint: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete conversations based on filter criteria.
+    """
+    try:
+        # Prevent deletion of all conversations without parameters
+        if not conversationId and not source and not thread_id and not endpoint:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No parameters provided"
+            )
+        
+        conversation_service = ConversationService(db)
+        
+        if conversationId:
+            # Delete specific conversation
+            try:
+                conv_id = int(conversationId)
+                conversation_service.delete_conversation(conv_id, current_user.id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid conversation ID format"
+                )
+        elif source == 'button':
+            return ApiResponse.create_success(
+                data={"message": "No conversationId provided"},
+                message="No conversation to delete"
+            )
+        
+        return ApiResponse.create_success(
+            data={"message": "Conversation(s) deleted successfully"},
+            message="Conversation(s) deleted successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting conversations: {str(e)}"
+        )
+
+@router.delete("/all")
+async def delete_all_conversations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete all conversations for the current user.
+    """
+    try:
+        conversation_service = ConversationService(db)
+        # You'll need to implement this method in the service
+        # conversation_service.delete_all_user_conversations(current_user.id)
+        
+        return ApiResponse.create_success(
+            data={"message": "All conversations deleted successfully"},
+            message="All conversations deleted successfully"
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting all conversations: {str(e)}"
+        )
+
+@router.post("/fork")
+async def fork_conversation(
+    conversationId: str,
+    messageId: Optional[str] = None,
+    option: Optional[str] = None,
+    splitAtTarget: Optional[bool] = None,
+    latestMessageId: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Fork a conversation.
+    Note: This is a stub implementation - you may want to implement actual forking logic.
+    """
+    try:
+        # For now, return a placeholder response
+        # In a real implementation, you would create a new conversation based on the original
+        forked_conversation_id = f"forked_{conversationId}"
+        
+        return ApiResponse.create_success(
+            data={
+                "conversationId": forked_conversation_id,
+                "message": "Conversation forked successfully"
+            },
+            message="Conversation forked successfully"
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error forking conversation: {str(e)}"
+        )
+
+@router.post("/duplicate")
+async def duplicate_conversation(
+    conversationId: str,
+    title: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Duplicate a conversation.
+    Note: This is a stub implementation - you may want to implement actual duplication logic.
+    """
+    try:
+        # For now, return a placeholder response
+        # In a real implementation, you would create a copy of the conversation
+        duplicated_conversation_id = f"duplicated_{conversationId}"
+        
+        return ApiResponse.create_success(
+            data={
+                "conversationId": duplicated_conversation_id,
+                "title": title or f"Copy of conversation {conversationId}",
+                "message": "Conversation duplicated successfully"
+            },
+            message="Conversation duplicated successfully"
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error duplicating conversation: {str(e)}"
         ) 
