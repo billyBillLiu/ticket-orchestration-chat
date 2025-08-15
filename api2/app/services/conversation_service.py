@@ -149,6 +149,138 @@ class ConversationService(BaseService):
         
         return True
     
+    def delete_all_user_conversations(self, user_id: int) -> int:
+        """
+        Delete all conversations for a user and their associated messages.
+        
+        Args:
+            user_id: ID of the user
+            
+        Returns:
+            Number of conversations deleted
+        """
+        from app.models.message import Message
+        
+        # Get all conversation IDs for the user
+        conversation_ids = self.db.query(Conversation.id).filter(
+            Conversation.user_id == user_id
+        ).all()
+        
+        conversation_ids = [conv_id[0] for conv_id in conversation_ids]
+        
+        if not conversation_ids:
+            return 0
+        
+        # Delete all messages for these conversations
+        self.db.query(Message).filter(
+            Message.conversation_id.in_(conversation_ids)
+        ).delete(synchronize_session=False)
+        
+        # Delete all conversations
+        deleted_count = self.db.query(Conversation).filter(
+            Conversation.user_id == user_id
+        ).delete(synchronize_session=False)
+        
+        self.db.commit()
+        
+        return deleted_count
+    
+    def delete_conversations_by_thread_id(self, thread_id: str, user_id: int) -> int:
+        """
+        Delete all conversations for a user that have a specific thread_id.
+        
+        Args:
+            thread_id: The thread_id to match
+            user_id: ID of the user (for security)
+            
+        Returns:
+            Number of conversations deleted
+        """
+        from app.models.message import Message
+        
+        # Find conversations that have messages with the specified thread_id
+        conversation_ids = self.db.query(Message.conversation_id).filter(
+            Message.thread_id == thread_id
+        ).distinct().all()
+        
+        conversation_ids = [conv_id[0] for conv_id in conversation_ids]
+        
+        if not conversation_ids:
+            return 0
+        
+        # Verify user owns these conversations
+        user_conversation_ids = self.db.query(Conversation.id).filter(
+            Conversation.id.in_(conversation_ids),
+            Conversation.user_id == user_id
+        ).all()
+        
+        user_conversation_ids = [conv_id[0] for conv_id in user_conversation_ids]
+        
+        if not user_conversation_ids:
+            return 0
+        
+        # Delete all messages for these conversations
+        self.db.query(Message).filter(
+            Message.conversation_id.in_(user_conversation_ids)
+        ).delete(synchronize_session=False)
+        
+        # Delete conversations
+        deleted_count = self.db.query(Conversation).filter(
+            Conversation.id.in_(user_conversation_ids)
+        ).delete(synchronize_session=False)
+        
+        self.db.commit()
+        
+        return deleted_count
+    
+    def delete_conversations_by_endpoint(self, endpoint: str, user_id: int) -> int:
+        """
+        Delete all conversations for a user that have messages with a specific endpoint.
+        
+        Args:
+            endpoint: The endpoint to match
+            user_id: ID of the user (for security)
+            
+        Returns:
+            Number of conversations deleted
+        """
+        from app.models.message import Message
+        
+        # Find conversations that have messages with the specified endpoint
+        conversation_ids = self.db.query(Message.conversation_id).filter(
+            Message.endpoint == endpoint
+        ).distinct().all()
+        
+        conversation_ids = [conv_id[0] for conv_id in conversation_ids]
+        
+        if not conversation_ids:
+            return 0
+        
+        # Verify user owns these conversations
+        user_conversation_ids = self.db.query(Conversation.id).filter(
+            Conversation.id.in_(conversation_ids),
+            Conversation.user_id == user_id
+        ).all()
+        
+        user_conversation_ids = [conv_id[0] for conv_id in user_conversation_ids]
+        
+        if not user_conversation_ids:
+            return 0
+        
+        # Delete all messages for these conversations
+        self.db.query(Message).filter(
+            Message.conversation_id.in_(user_conversation_ids)
+        ).delete(synchronize_session=False)
+        
+        # Delete conversations
+        deleted_count = self.db.query(Conversation).filter(
+            Conversation.id.in_(user_conversation_ids)
+        ).delete(synchronize_session=False)
+        
+        self.db.commit()
+        
+        return deleted_count
+    
     def archive_conversation(self, conversation_id: int, user_id: int) -> Conversation:
         """
         Archive a conversation.

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -12,6 +12,10 @@ from app.utils.response_utils import ApiResponse
 
 # Request model for the update endpoint
 class UpdateConversationRequest(BaseModel):
+    arg: dict  # The frontend sends { arg: payload }
+
+# Request model for delete conversations
+class DeleteConversationRequest(BaseModel):
     arg: dict  # The frontend sends { arg: payload }
 
 router = APIRouter(tags=["Conversations"])
@@ -187,31 +191,7 @@ async def update_conversation_post(
             detail=f"Error updating conversation: {str(e)}"
         )
 
-@router.delete("/{conversation_id}")
-async def delete_conversation(
-    conversation_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Delete a conversation.
-    """
-    try:
-        conversation_service = ConversationService(db)
-        conversation_service.delete_conversation(conversation_id, current_user.id)
-        
-        return ApiResponse.create_success(
-            data={"message": "Conversation deleted successfully"},
-            message="Conversation deleted successfully"
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting conversation: {str(e)}"
-        )
+# Note: This endpoint is moved after the general DELETE "/" endpoint to avoid conflicts
 
 @router.post("/{conversation_id}/archive")
 async def archive_conversation(
@@ -317,47 +297,78 @@ async def generate_title(
             detail=f"Error generating title: {str(e)}"
         )
 
+@router.delete("")
 @router.delete("/")
 async def delete_conversations(
-    conversationId: Optional[str] = None,
-    source: Optional[str] = None,
-    thread_id: Optional[str] = None,
-    endpoint: Optional[str] = None,
+    conversationId: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
+    thread_id: Optional[str] = Query(None),
+    endpoint: Optional[str] = Query(None),
+    request_body: Optional[DeleteConversationRequest] = Body(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Delete conversations based on filter criteria.
+    Supports:
+    - Single conversation deletion by ID
+    - Bulk deletion by thread_id or endpoint
+    - Request body payload (for frontend compatibility)
     """
     try:
+        # Extract parameters from request body if provided
+        if request_body and request_body.arg:
+            payload = request_body.arg
+            conversationId = payload.get('conversationId') or conversationId
+            source = payload.get('source') or source
+            thread_id = payload.get('thread_id') or thread_id
+            endpoint = payload.get('endpoint') or endpoint
+        
         # Prevent deletion of all conversations without parameters
         if not conversationId and not source and not thread_id and not endpoint:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No parameters provided"
+                detail="No parameters provided. Please specify conversationId, thread_id, or endpoint."
             )
         
         conversation_service = ConversationService(db)
+        deleted_count = 0
         
         if conversationId:
             # Delete specific conversation
             try:
                 conv_id = int(conversationId)
                 conversation_service.delete_conversation(conv_id, current_user.id)
+                deleted_count = 1
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid conversation ID format"
                 )
+        elif thread_id:
+            # Delete conversations by thread_id
+            deleted_count = conversation_service.delete_conversations_by_thread_id(thread_id, current_user.id)
+        elif endpoint:
+            # Delete conversations by endpoint
+            deleted_count = conversation_service.delete_conversations_by_endpoint(endpoint, current_user.id)
         elif source == 'button':
             return ApiResponse.create_success(
                 data={"message": "No conversationId provided"},
                 message="No conversation to delete"
             )
         
+        if deleted_count == 0:
+            return ApiResponse.create_success(
+                data={"message": "No conversations found to delete"},
+                message="No conversations found to delete"
+            )
+        
         return ApiResponse.create_success(
-            data={"message": "Conversation(s) deleted successfully"},
-            message="Conversation(s) deleted successfully"
+            data={
+                "message": f"Successfully deleted {deleted_count} conversation(s)",
+                "deleted_count": deleted_count
+            },
+            message=f"Successfully deleted {deleted_count} conversation(s)"
         )
         
     except HTTPException:
@@ -366,6 +377,33 @@ async def delete_conversations(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting conversations: {str(e)}"
+        )
+
+# Specific conversation delete endpoint (moved to avoid conflicts)
+@router.delete("/id/{conversation_id}")
+async def delete_conversation(
+    conversation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a conversation by ID in the URL path.
+    """
+    try:
+        conversation_service = ConversationService(db)
+        conversation_service.delete_conversation(conversation_id, current_user.id)
+        
+        return ApiResponse.create_success(
+            data={"message": "Conversation deleted successfully"},
+            message="Conversation deleted successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting conversation: {str(e)}"
         )
 
 @router.delete("/all")
@@ -378,12 +416,14 @@ async def delete_all_conversations(
     """
     try:
         conversation_service = ConversationService(db)
-        # You'll need to implement this method in the service
-        # conversation_service.delete_all_user_conversations(current_user.id)
+        deleted_count = conversation_service.delete_all_user_conversations(current_user.id)
         
         return ApiResponse.create_success(
-            data={"message": "All conversations deleted successfully"},
-            message="All conversations deleted successfully"
+            data={
+                "message": f"All conversations deleted successfully",
+                "deleted_count": deleted_count
+            },
+            message=f"Successfully deleted {deleted_count} conversations"
         )
         
     except Exception as e:
