@@ -264,8 +264,12 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
 
         # Use FastAPI's async streaming response
         async def generate_async_stream():
-            # Send the request message first
-            yield f"event: message\ndata: {json.dumps({'requestMessage': request_message})}\n\n"
+            # Send the created event first to set up the messages
+            created_data = {
+                "created": True,
+                "message": request_message
+            }
+            yield f"event: message\ndata: {json.dumps(created_data)}\n\n"
             
             # Initialize response content
             response_content = ""
