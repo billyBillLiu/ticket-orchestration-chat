@@ -165,13 +165,13 @@ export const parseConvo = ({
   endpointType,
   conversation,
   possibleValues,
+  // TODO: POC for default schema
+  // defaultSchema?: Partial<EndpointSchema>,
 }: {
   endpoint: EndpointSchemaKey;
   endpointType?: EndpointSchemaKey | null;
   conversation: Partial<s.TConversation | s.TPreset> | null;
   possibleValues?: TPossibleValues;
-  // TODO: POC for default schema
-  // defaultSchema?: Partial<EndpointSchema>,
 }) => {
   let schema = endpointSchemas[endpoint] as EndpointSchema | undefined;
 
@@ -184,6 +184,10 @@ export const parseConvo = ({
   // if (defaultSchema && schemaCreators[endpoint]) {
   //   schema = schemaCreators[endpoint](defaultSchema);
   // }
+
+  if (!schema) {
+    throw new Error(`Unknown endpoint: ${endpoint}`);
+  }
 
   const convo = schema?.parse(conversation) as s.TConversation | undefined;
   const { models, secondaryModels } = possibleValues ?? {};
@@ -359,21 +363,24 @@ export const parseCompactConvo = ({
     schema = compactEndpointSchemas[endpointType];
   }
 
+  // if (defaultSchema && schemaCreators[endpoint]) {
+  //   schema = schemaCreators[endpoint](defaultSchema);
+  // }
+
   if (!schema) {
-    throw new Error(`Unknown endpointType: ${endpointType}`);
+    throw new Error(`Unknown endpoint: ${endpoint}`);
   }
 
-  const convo = schema.parse(conversation) as s.TConversation | null;
-  // const { models, secondaryModels } = possibleValues ?? {};
-  const { models } = possibleValues ?? {};
+  const convo = schema?.parse(conversation) as s.TConversation | undefined;
+  const { models, secondaryModels } = possibleValues ?? {};
 
   if (models && convo) {
     convo.model = getFirstDefinedValue(models) ?? convo.model;
   }
 
-  // if (secondaryModels && convo.agentOptions) {
-  //   convo.agentOptionmodel = getFirstDefinedValue(secondaryModels) ?? convo.agentOptionmodel;
-  // }
+  if (secondaryModels && convo?.agentOptions) {
+    convo.agentOptions.model = getFirstDefinedValue(secondaryModels) ?? convo.agentOptions.model;
+  }
 
   return convo;
 };

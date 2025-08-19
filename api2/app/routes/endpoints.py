@@ -12,42 +12,22 @@ from datetime import datetime
 import json
 import logging
 from app.utils.response_utils import ApiResponse
-from app.constants import DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, DEFAULT_SENDER, DEFAULT_ENDPOINT, DEFAULT_PARENT_MESSAGE_ID
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-
 @router.get("/endpoints")
 async def get_endpoints():
-    """Get available endpoints configuration"""
+    """Get available endpoints configuration - simplified for single model"""
+    # Use "custom" as the endpoint key for compatibility
+    endpoint_key = "custom"
     endpoints_data = {
-        "custom": {
+        endpoint_key: {
             "enabled": True,
             "available": True,
-            "models": [DEFAULT_MODEL, "llama2:7b", "mistral:7b"]
-        },
-        "openAI": {
-            "enabled": False,
-            "available": False,
-            "models": ["gpt-3.5-turbo", "gpt-4"]
-        },
-        "anthropic": {
-            "enabled": False,
-            "available": False,
-            "models": ["claude-3-sonnet", "claude-3-haiku"]
-        },
-        "google": {
-            "enabled": False,
-            "available": False,
-            "models": []
-        },
-        "azure": {
-            "enabled": False,
-            "available": False,
-            "models": []
+            "models": [settings.llm_model]  # Only the active model
         }
     }
     return endpoints_data
@@ -59,32 +39,32 @@ async def test_endpoint():
 
 @router.get("/llm/health")
 async def llm_health_check():
-    """Check if LLM service (Ollama) is running"""
+    """Check if LLM service is running"""
     from app.services.llm_service import llm_service
     try:
         is_healthy = await llm_service.health_check()
         return {
             "status": "healthy" if is_healthy else "unhealthy",
-            "llm_provider": "ollama",
+            "llm_provider": llm_service.provider,
             "base_url": llm_service.base_url,
-            "default_model": llm_service.default_model
+            "default_model": llm_service.model
         }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "llm_provider": "ollama"
+            "llm_provider": llm_service.provider
         }
 
 @router.get("/llm/models")
 async def list_llm_models():
-    """List available LLM models"""
+    """List available LLM models - simplified for single model"""
     from app.services.llm_service import llm_service
     try:
-        models = await llm_service.list_models()
+        # Return only the active model instead of all available models
         return {
-            "models": models,
-            "default_model": llm_service.default_model
+            "models": [{"name": llm_service.model}],  # Single model only
+            "default_model": llm_service.model
         }
     except Exception as e:
         return {
@@ -120,19 +100,30 @@ async def get_messages(conversation_id: str, db: Session = Depends(get_db), curr
             "error": False,
             "isEdited": False,
             "model": None,
-            "endpoint": "ollama"
+            "endpoint": "custom"
         })
     
     return result
 
-@router.post("/ask/custom")
-async def ask_custom(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.post("/ask/{provider}")
+async def ask_provider(provider: str, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Ask the configured LLM provider - simplified for single model"""
+    # Accept "custom" as a valid provider that maps to the configured provider
+    if provider == "custom":
+        provider = settings.llm_provider
+    elif provider != settings.llm_provider:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Provider '{provider}' not configured. Using '{settings.llm_provider}'"
+        )
+    
     try:
         data = await request.json()
         
         # Try to get OpenAI-style messages array
         messages = data.get("messages")
-        model = data.get("model", DEFAULT_MODEL)  # Use our actual Ollama model
+        # Always use the configured model - no model selection
+        model = settings.llm_model
 
         # If not present, try to convert from flat format
         if not messages:
@@ -142,7 +133,8 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                     "role": "user" if data.get("sender", "").lower() == "user" else "assistant",
                     "content": data.get("text", "")
                 }]
-                model = data.get("model", DEFAULT_MODEL)  # Use our actual Ollama model
+                # Always use the configured model
+                model = settings.llm_model
             else:
                 raise HTTPException(status_code=400, detail="No messages provided")
 
@@ -208,12 +200,7 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
         
         # Generate response using LLM
         try:
-            # Ensure we use the correct model name
-            if model != DEFAULT_MODEL:
-                logger.info(f"Model '{model}' not found, using default '{DEFAULT_MODEL}'")
-                model = DEFAULT_MODEL
-            
-            # Log LLM call
+            # Always use the configured model - no validation needed
             logger.info(f"Calling LLM service with model: '{model}'")
                 
         except Exception as e:
@@ -221,7 +208,7 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
             raise HTTPException(status_code=500, detail=f"LLM service error: {str(e)}")
         
         # Get parent message ID from request
-        parent_message_id = data.get("parentMessageId", DEFAULT_PARENT_MESSAGE_ID)
+        parent_message_id = data.get("parentMessageId", "00000000-0000-0000-0000-000000000000")
         
         # Create message IDs
         user_message_id = str(uuid.uuid4())
@@ -258,11 +245,9 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
             "error": False,
             "isEdited": False,
             "model": model,  # Use the actual model instead of None
-            "endpoint": "custom"  # Use "custom" instead of DEFAULT_ENDPOINT
+            "endpoint": "custom"  # Use "custom" for compatibility
         }
         
-
-
         # Use FastAPI's async streaming response
         async def generate_async_stream():
             # Send the created event first to set up the messages
@@ -292,8 +277,8 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                 async for chunk in llm_service.generate_response(
                     messages=llm_messages,
                     model=model,
-                    temperature=DEFAULT_TEMPERATURE,
-                    max_tokens=DEFAULT_MAX_TOKENS
+                    temperature=settings.default_temperature,
+                    max_tokens=settings.default_max_tokens
                 ):
                     # Add chunk to accumulated content for final storage
                     response_content += chunk
@@ -305,13 +290,13 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                         "messageId": assistant_message_id,
                         "conversationId": str(conversation.id),
                         "parentMessageId": user_message_id,
-                        "sender": DEFAULT_SENDER,
+                        "sender": "Ticket Bot",
                         "text": response_content,  # Send accumulated content (frontend expects this)
                         "isCreatedByUser": False,
                         "createdAt": assistant_msg.created_at.isoformat() if assistant_msg.created_at else datetime.now().isoformat(),
                         "updatedAt": datetime.now().isoformat(),
                         "model": model,
-                        "endpoint": "custom",
+                        "endpoint": "custom",  # Use "custom" for compatibility
                         "unfinished": True,  # Mark as unfinished during streaming
                         "error": False,
                         "isEdited": False
@@ -336,13 +321,13 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                     "messageId": assistant_message_id,
                     "conversationId": str(conversation.id),
                     "parentMessageId": user_message_id,
-                    "sender": DEFAULT_SENDER,
+                    "sender": "Ticket Bot",
                     "text": response_content,  # Send complete content in final message
                     "isCreatedByUser": False,
                     "createdAt": assistant_msg.created_at.isoformat() if assistant_msg.created_at else datetime.now().isoformat(),
                     "updatedAt": datetime.now().isoformat(),
                     "model": model,
-                    "endpoint": "custom",
+                    "endpoint": "custom",  # Use "custom" for compatibility
                     "unfinished": False,  # Mark as finished
                     "error": False,
                     "isEdited": False
@@ -359,7 +344,7 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                         "createdAt": conversation.created_at.isoformat(),
                         "updatedAt": conversation.updated_at.isoformat(),
                         "model": model,
-                        "endpoint": "custom",
+                        "endpoint": "custom",  # Use "custom" for compatibility
                         "isArchived": False,
                         "messages": [user_message_id, assistant_message_id]
                     },
@@ -377,13 +362,13 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                     "messageId": assistant_message_id,
                     "conversationId": str(conversation.id),
                     "parentMessageId": user_message_id,
-                    "sender": DEFAULT_SENDER,
+                    "sender": "Ticket Bot",
                     "text": f"I'm having trouble processing your request right now. Please try again. Your message was: {user_message}",
                     "isCreatedByUser": False,
                     "createdAt": datetime.now().isoformat(),
                     "updatedAt": datetime.now().isoformat(),
                     "model": model,
-                    "endpoint": "custom",
+                    "endpoint": "custom",  # Use "custom" for compatibility
                     "unfinished": False,
                     "error": True,
                     "isEdited": False
@@ -407,7 +392,13 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
         )
         
     except Exception as e:
-        print(f"Error in ask_custom: {e}")
+        print(f"Error in ask_provider: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+# Keep the old endpoint for backward compatibility
+@router.post("/ask/custom")
+async def ask_custom(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Legacy endpoint - redirects to the configured provider"""
+    return await ask_provider(settings.llm_provider, request, db, current_user) 

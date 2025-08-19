@@ -391,11 +391,25 @@ export default function useEventHandlers({
             conversationId,
             currentTitle: prevState?.title,
           });
-          update = tConvoUpdateSchema.parse({
-            ...prevState,
-            conversationId,
-            title,
-          }) as TConversation;
+          update = (() => {
+            try {
+              return tConvoUpdateSchema.parse({
+                ...prevState,
+                conversationId,
+                title,
+              }) as TConversation;
+            } catch (error) {
+              // Handle dynamic endpoints like 'ollama' that aren't in the schema
+              if (prevState?.endpoint && typeof prevState.endpoint === 'string') {
+                return {
+                  ...prevState,
+                  conversationId,
+                  title,
+                } as TConversation;
+              }
+              throw error;
+            }
+          })();
           return update;
         });
 
@@ -408,10 +422,23 @@ export default function useEventHandlers({
         }
       } else if (setConversation) {
         setConversation((prevState) => {
-          update = tConvoUpdateSchema.parse({
-            ...prevState,
-            conversationId,
-          }) as TConversation;
+          update = (() => {
+            try {
+              return tConvoUpdateSchema.parse({
+                ...prevState,
+                conversationId,
+              }) as TConversation;
+            } catch (error) {
+              // Handle dynamic endpoints like 'ollama' that aren't in the schema
+              if (prevState?.endpoint && typeof prevState.endpoint === 'string') {
+                return {
+                  ...prevState,
+                  conversationId,
+                } as TConversation;
+              }
+              throw error;
+            }
+          })();
           return update;
         });
       }
@@ -511,14 +538,14 @@ export default function useEventHandlers({
             ...prevState,
             ...(conversation as TConversation),
           };
-          // Enhanced model preservation logic for custom endpoints
+          // Enhanced model preservation logic for dynamic provider endpoints
           if (prevState?.model != null && prevState.model !== submissionConvo.model) {
             update.model = prevState.model;
-          } else if (submissionConvo.endpoint === 'custom' && prevState?.model) {
-            // For custom endpoints, always preserve the model if it exists in prevState
+          } else if (submissionConvo.endpoint && prevState?.model) {
+            // For any provider endpoint, always preserve the model if it exists in prevState
             update.model = prevState.model;
-          } else if (submissionConvo.endpoint === 'custom' && !update.model && submissionConvo.model) {
-            // For custom endpoints, ensure the model from submission is preserved
+          } else if (submissionConvo.endpoint && !update.model && submissionConvo.model) {
+            // For any provider endpoint, ensure the model from submission is preserved
             update.model = submissionConvo.model;
           }
           const cachedConvo = queryClient.getQueryData<TConversation>([

@@ -180,7 +180,7 @@ export const useEndpoints = ({
         );
       }
 
-      // For other endpoints with models from the modelsQuery
+      // For other endpoints with models from the modelsQuery (including dynamic providers like ollama, openai)
       else if (
         ep !== EModelEndpoint.agents &&
         ep !== EModelEndpoint.assistants &&

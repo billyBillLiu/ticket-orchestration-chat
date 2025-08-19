@@ -6,8 +6,6 @@
 export const DEFAULT_MODEL = 'deepseek-r1:8b';
 
 // API Constants
-export const DEFAULT_TEMPERATURE = 0.7;
-export const DEFAULT_MAX_TOKENS = 1000;
 
 // Message Constants
 export const DEFAULT_SENDER = 'Ticket Bot';

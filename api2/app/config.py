@@ -1,7 +1,14 @@
 from pydantic_settings import BaseSettings
-from typing import Optional, List
+from typing import Optional, List, Dict
 import os
-from .constants import DEFAULT_MODEL
+from .constants import (
+    PROVIDERS, 
+    MODELS,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_MAX_TOKENS,
+    ACTIVE_PROVIDER,
+    ACTIVE_MODEL
+)
 
 class Settings(BaseSettings):
     # App settings
@@ -24,10 +31,20 @@ class Settings(BaseSettings):
     # Database settings
     database_url: Optional[str] = None
     
-    # LLM Settings
-    llm_provider: str = "ollama"
-    ollama_base_url: str = "http://localhost:11434"
-    default_model: str = DEFAULT_MODEL
+    # LLM Settings - Centralized Configuration
+    llm_provider: str = ACTIVE_PROVIDER  # Default to first provider
+    llm_model: str = ACTIVE_MODEL  # Default to first model of first provider
+    available_providers: List[str] = PROVIDERS
+    available_models: Dict[str, List[str]] = MODELS
+    
+    # Provider-specific settings
+    ollama_base_url: str = os.getenv("OLLAMA_BASE_URL") or "http://localhost:11434"
+    openai_base_url: str = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+    openai_api_key: Optional[str] = None
+    
+    # LLM Generation settings
+    default_temperature: float = DEFAULT_TEMPERATURE
+    default_max_tokens: int = DEFAULT_MAX_TOKENS
 
     # JWT settings
     secret_key: str = "your-secret-key-here"
