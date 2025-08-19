@@ -6,10 +6,9 @@ import type { TEditProps } from '~/common';
 import { useChatContext, useAddedChatContext } from '~/Providers';
 import { TextareaAutosize, TooltipAnchor } from '~/components/ui';
 import { cn, removeFocusRings } from '~/utils';
-import { useLocalize } from '~/hooks';
+import { useLocalize, useDefaultModel } from '~/hooks';
 import Container from './Container';
 import store from '~/store';
-import { DEFAULT_MODEL } from '~/constants';
 
 const EditMessage = ({
   text,
@@ -33,6 +32,7 @@ const EditMessage = ({
   const { conversationId, parentMessageId, messageId } = message;
   const updateMessageMutation = useUpdateMessageMutation(conversationId ?? '');
   const localize = useLocalize();
+  const defaultModel = useDefaultModel();
 
   const chatDirection = useRecoilValue(store.chatDirection).toLowerCase();
   const isRTL = chatDirection === 'rtl';
@@ -97,7 +97,7 @@ const EditMessage = ({
     }
     updateMessageMutation.mutate({
       conversationId: conversationId ?? '',
-      model: conversation?.model ?? DEFAULT_MODEL,
+      model: conversation?.model ?? defaultModel,
       text: data.text,
       messageId,
     });

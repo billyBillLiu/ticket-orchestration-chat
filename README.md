@@ -3,7 +3,7 @@ This is a AI Chat that orchestrates ticket creation based on the user's needs. I
 Work in progress. Currently migrating backend from Node to FastAPI
 
 ### TODO:
-- Fix Streaming Messages
+- Fix Message Preview and Chat Sender
 - Agents
 - Use agents to create tickets
 - Implement Archive Comvos

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.utils.response_utils import ApiResponse
+from app.constants import ACTIVE_MODEL
 
 router = APIRouter()
 
@@ -14,6 +15,7 @@ async def get_config():
         "registrationEnabled": True,
         "socialLoginEnabled": False,
         "passwordResetEnabled": True,
+        "defaultModel": ACTIVE_MODEL,
         # Add any other flags your frontend expects
         "features": {
             "registration": True,
@@ -45,6 +47,7 @@ async def get_startup_config():
         "registrationEnabled": True,
         "socialLoginEnabled": False,
         "passwordResetEnabled": True,
+        "defaultModel": ACTIVE_MODEL,
         "features": {
             "registration": True,
             "socialLogin": False,
