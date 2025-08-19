@@ -21,7 +21,7 @@ Work in progress. Currently migrating backend from Node to FastAPI
 ## Local Dev:
 - cp .env.example .env && cp librechat.example.yaml librechat.yaml
 - npm install
-- cd api2 && python -m venv .venv && pip install -r requirements.txt
+- cd api2 && cd env.example .env &&python -m venv .venv && pip install -r requirements.txt
 
 ### Windows Commands:  
 - .venv/Scripts/Activate  
@@ -32,6 +32,11 @@ Work in progress. Currently migrating backend from Node to FastAPI
 - source .venv/bin/activate  
 - python -m uvicorn main:app --host 0.0.0.0 --port 3080  
 - cd ../client && npm run build && cd ../api2 && python -m uvicorn main:app --host 0.0.0.0 --port 3080  
+
+### Model and Provider Selection:
+- api2/.env: Contains API Keys & Addresses
+- api2/app/constants.py: Provider and Model Selection
+- api2/app/config.py: Where all the (models, keys, providers, and addresses) pass through to be exported to the rest of the app
 
 ## Temporary Notes:
 
