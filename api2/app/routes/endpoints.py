@@ -7,6 +7,7 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 from app.routes.auth import get_current_user
 import uuid
+import asyncio
 from datetime import datetime
 import json
 import logging
@@ -284,6 +285,8 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                 is_created_by_user=False
             )
             
+            # Don't send assistant message creation event - let messageHandler handle it
+            
             try:
                 # Stream the LLM response
                 async for chunk in llm_service.generate_response(
@@ -292,11 +295,13 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                     temperature=DEFAULT_TEMPERATURE,
                     max_tokens=DEFAULT_MAX_TOKENS
                 ):
-                    # Add chunk to accumulated content
+                    # Add chunk to accumulated content for final storage
                     response_content += chunk
                     
                     # Create streaming response message with accumulated content
+                    # The frontend messageHandler expects the full text to replace the message
                     streaming_response = {
+                        "message": True,  # This triggers the messageHandler
                         "messageId": assistant_message_id,
                         "conversationId": str(conversation.id),
                         "parentMessageId": user_message_id,
@@ -314,6 +319,8 @@ async def ask_custom(request: Request, db: Session = Depends(get_db), current_us
                     
                     # Send immediately without buffering
                     yield f"event: message\ndata: {json.dumps(streaming_response)}\n\n"
+                    # Add a small delay to prevent overwhelming the frontend
+                    await asyncio.sleep(0.01)
                 
                 # Store the complete response in database
                 try:
