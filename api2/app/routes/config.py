@@ -15,7 +15,7 @@ async def get_config():
         "registrationEnabled": True,
         "socialLoginEnabled": False,
         "passwordResetEnabled": True,
-        "defaultModel": ACTIVE_MODEL,
+        "activeModel": ACTIVE_MODEL,
         # Add any other flags your frontend expects
         "features": {
             "registration": True,
@@ -47,7 +47,7 @@ async def get_startup_config():
         "registrationEnabled": True,
         "socialLoginEnabled": False,
         "passwordResetEnabled": True,
-        "defaultModel": ACTIVE_MODEL,
+        "activeModel": ACTIVE_MODEL,
         "features": {
             "registration": True,
             "socialLogin": False,

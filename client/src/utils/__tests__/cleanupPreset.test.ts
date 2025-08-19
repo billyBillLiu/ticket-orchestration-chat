@@ -1,4 +1,4 @@
-import { EModelEndpoint, DEFAULT_MODEL } from 'librechat-data-provider';
+import { EModelEndpoint } from 'librechat-data-provider';
 import cleanupPreset from '../cleanupPreset';
 import type { TPreset } from 'librechat-data-provider';
 
@@ -10,7 +10,7 @@ jest.mock('librechat-data-provider', () => ({
     const { conversation } = input;
     return {
       ...conversation,
-      model: conversation?.model || DEFAULT_MODEL,
+      model: conversation?.model,
     };
   }),
 }));

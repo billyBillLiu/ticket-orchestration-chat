@@ -5,7 +5,7 @@ import { TFeedback, feedbackSchema } from './feedback';
 import type { SearchResultData } from './types/web';
 import type { TEphemeralAgent } from './types';
 import type { TFile } from './types/files';
-import { DEFAULT_MODEL, DEFAULT_AGENT_MODEL } from './constants';
+
 
 export const isUUID = z.string().uuid();
 
@@ -854,7 +854,7 @@ export const gptPluginsSchema = gptPluginsBaseSchema
   .transform((obj) => {
     const result = {
       ...obj,
-      model: obj.model ?? DEFAULT_MODEL,
+      model: obj.model,
       chatGptLabel: obj.chatGptLabel ?? obj.modelLabel ?? null,
       promptPrefix: obj.promptPrefix ?? null,
       temperature: obj.temperature ?? 0.8,
@@ -865,7 +865,7 @@ export const gptPluginsSchema = gptPluginsBaseSchema
       agentOptions: obj.agentOptions ?? {
         agent: EAgent.functions,
         skipCompletion: true,
-        model: DEFAULT_AGENT_MODEL,
+        model: obj.model,
         temperature: 0,
       },
       iconURL: obj.iconURL ?? undefined,
@@ -881,7 +881,7 @@ export const gptPluginsSchema = gptPluginsBaseSchema
     return result;
   })
   .catch(() => ({
-    model: DEFAULT_MODEL,
+    model: undefined,
     chatGptLabel: null,
     promptPrefix: null,
     temperature: 0.8,
@@ -892,7 +892,7 @@ export const gptPluginsSchema = gptPluginsBaseSchema
           agentOptions: {
         agent: EAgent.functions,
         skipCompletion: true,
-        model: DEFAULT_AGENT_MODEL,
+        model: undefined,
         temperature: 0,
       },
     iconURL: undefined,
@@ -1123,7 +1123,7 @@ export const compactPluginsSchema = gptPluginsBaseSchema
       newObj.agentOptions &&
       newObj.agentOptions.agent === EAgent.functions &&
       newObj.agentOptions.skipCompletion === true &&
-      newObj.agentOptions.model === DEFAULT_AGENT_MODEL &&
+      newObj.agentOptions.model === undefined &&
       newObj.agentOptions.temperature === 0
     ) {
       delete newObj.agentOptions;

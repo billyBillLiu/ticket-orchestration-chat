@@ -3,9 +3,9 @@ import { useGetStartupConfig } from '~/data-provider';
 import store from '~/store';
 
 export const useDefaultModel = () => {
-  const { data: startupConfig } = useGetStartupConfig();
+  const { data: startupConfig, isLoading } = useGetStartupConfig();
   const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
   
-  // Return the default model from startup config, or fallback to a default value
-  return startupConfig?.defaultModel || 'deepseek-r1:8b';
+  // Return the active model from startup config - no fallback, wait for backend
+  return startupConfig?.activeModel;
 };
