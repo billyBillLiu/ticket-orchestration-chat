@@ -4,7 +4,7 @@ import { TerminalSquareIcon } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect } from 'react';
 import type { CodeBarProps } from '~/common';
 import { useVerifyAgentToolAuth, useToolCallMutation } from '~/data-provider';
-import ApiKeyDialog from '~/components/SidePanel/Agents/Code/ApiKeyDialog';
+import ApiKeyDialog from '~/components/Dialogs/Code/ApiKeyDialog';
 import { useLocalize, useCodeApiKeyForm } from '~/hooks';
 import { useMessageContext } from '~/Providers';
 import { cn, normalizeLanguage } from '~/utils';

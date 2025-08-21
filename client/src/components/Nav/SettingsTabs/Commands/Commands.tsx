@@ -3,8 +3,8 @@ import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import HoverCardSettings from '~/components/Nav/SettingsTabs/HoverCardSettings';
 import { useLocalize, useHasAccess } from '~/hooks';
 import SlashCommandSwitch from './SlashCommandSwitch';
-import PlusCommandSwitch from './PlusCommandSwitch';
-import AtCommandSwitch from './AtCommandSwitch';
+
+
 
 function Commands() {
   const localize = useLocalize();
@@ -29,13 +29,9 @@ function Commands() {
       </div>
       <div className="flex flex-col gap-3 text-sm text-text-primary">
         <div className="pb-3">
-          <AtCommandSwitch />
+  
         </div>
-        {hasAccessToMultiConvo === true && (
-          <div className="pb-3">
-            <PlusCommandSwitch />
-          </div>
-        )}
+        
         {hasAccessToPrompts === true && (
           <div className="pb-3">
             <SlashCommandSwitch />

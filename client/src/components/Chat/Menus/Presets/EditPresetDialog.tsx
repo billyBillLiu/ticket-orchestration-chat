@@ -20,7 +20,7 @@ import {
 } from '~/components';
 import { useSetIndexOptions, useLocalize, useDebouncedInput } from '~/hooks';
 import PopoverButtons from '~/components/Chat/Input/PopoverButtons';
-import { EndpointSettings } from '~/components/Endpoints';
+
 import { useGetEndpointsQuery } from '~/data-provider';
 import { useChatContext } from '~/Providers';
 import store from '~/store';
@@ -196,15 +196,7 @@ const EditPresetDialog = ({
           {/* Separator */}
           <div className="w-full border-t border-border-medium" />
 
-          {/* Settings section */}
-          <div className="w-full flex-1">
-            <EndpointSettings
-              conversation={preset}
-              setOption={setOption}
-              isPreset={true}
-              className="text-text-primary"
-            />
-          </div>
+
 
           {/* Action buttons */}
           <div className="flex justify-end gap-2 border-t border-border-medium pt-2 md:pt-4">

@@ -222,15 +222,7 @@ const activePromptByIndex = atomFamily<string | undefined, string | number | nul
   default: undefined,
 });
 
-const showMentionPopoverFamily = atomFamily<boolean, string | number | null>({
-  key: 'showMentionPopoverByIndex',
-  default: false,
-});
 
-const showPlusPopoverFamily = atomFamily<boolean, string | number | null>({
-  key: 'showPlusPopoverByIndex',
-  default: false,
-});
 
 const showPromptsPopoverFamily = atomFamily<boolean, string | number | null>({
   key: 'showPromptsPopoverByIndex',
@@ -417,13 +409,11 @@ export default {
   conversationByKeySelector,
   useClearConvoState,
   useCreateConversationAtom,
-  showMentionPopoverFamily,
   globalAudioURLFamily,
   activeRunFamily,
   audioRunFamily,
   globalAudioPlayingFamily,
   globalAudioFetchingFamily,
-  showPlusPopoverFamily,
   activePromptByIndex,
   useClearSubmissionState,
   useClearLatestMessages,

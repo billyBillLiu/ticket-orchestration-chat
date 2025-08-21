@@ -187,7 +187,7 @@ export function getDefaultModelSpec(startupConfig?: t.TStartupConfig) {
     return;
   }
   const defaultSpec = list?.find((spec) => spec.default);
-  if (prioritize === true || !interfaceConfig?.modelSelect) {
+  if (prioritize === true) {
     const lastSelectedSpecName = localStorage.getItem(LocalStorageKeys.LAST_SPEC);
     const lastSelectedSpec = list?.find((spec) => spec.name === lastSelectedSpecName);
     return defaultSpec || lastSelectedSpec || list?.[0];

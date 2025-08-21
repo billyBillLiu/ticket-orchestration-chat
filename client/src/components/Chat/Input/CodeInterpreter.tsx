@@ -10,7 +10,7 @@ import {
   PermissionTypes,
   Permissions,
 } from 'librechat-data-provider';
-import ApiKeyDialog from '~/components/SidePanel/Agents/Code/ApiKeyDialog';
+import ApiKeyDialog from '~/components/Dialogs/Code/ApiKeyDialog';
 import { useLocalize, useHasAccess, useCodeApiKeyForm } from '~/hooks';
 import CheckboxButton from '~/components/ui/CheckboxButton';
 import useLocalStorage from '~/hooks/useLocalStorageAlt';

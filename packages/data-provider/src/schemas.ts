@@ -889,12 +889,12 @@ export const gptPluginsSchema = gptPluginsBaseSchema
     presence_penalty: 0,
     frequency_penalty: 0,
     tools: [],
-          agentOptions: {
-        agent: EAgent.functions,
-        skipCompletion: true,
-        model: undefined,
-        temperature: 0,
-      },
+    agentOptions: {
+      agent: EAgent.functions,
+      skipCompletion: true,
+      model: '',
+      temperature: 0,
+    },
     iconURL: undefined,
     greeting: undefined,
     spec: undefined,

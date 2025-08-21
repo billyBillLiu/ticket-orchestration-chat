@@ -20,7 +20,6 @@ const staticAtoms = {
 const localStorageAtoms = {
   // General settings
   autoScroll: atomWithLocalStorage('autoScroll', false),
-  hideSidePanel: atomWithLocalStorage('hideSidePanel', false),
   fontSize: atomWithLocalStorage('fontSize', 'text-base'),
   enableUserMsgMarkdown: atomWithLocalStorage<boolean>(
     LocalStorageKeys.ENABLE_USER_MSG_MARKDOWN,
@@ -50,8 +49,6 @@ const localStorageAtoms = {
   showFooter: atomWithLocalStorage('showFooter', true),
 
   // Commands settings
-  atCommand: atomWithLocalStorage('atCommand', true),
-  plusCommand: atomWithLocalStorage('plusCommand', true),
   slashCommand: atomWithLocalStorage('slashCommand', true),
 
   // Speech settings

@@ -287,7 +287,7 @@ export type TModels = {
   popover?: boolean;
 };
 
-export type TModelSelectProps = TSettingsProps & TModels;
+
 
 export type TEditPresetProps = {
   open: boolean;

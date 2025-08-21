@@ -5,7 +5,7 @@ import { Root, Anchor } from '@radix-ui/react-popover';
 import { EModelEndpoint, isParamEndpoint, tConvoUpdateSchema } from 'librechat-data-provider';
 import { useUserKeyQuery } from 'librechat-data-provider/react-query';
 import type { TPreset, TInterfaceConfig } from 'librechat-data-provider';
-import { EndpointSettings, SaveAsPresetDialog, AlternativeSettings } from '~/components/Endpoints';
+
 import { useSetIndexOptions, useMediaQuery, useLocalize } from '~/hooks';
 import { PluginStoreDialog, TooltipAnchor } from '~/components';
 import { useGetEndpointsQuery } from '~/data-provider';
@@ -101,27 +101,10 @@ export default function HeaderOptions({
                 PopoverButtons={<PopoverButtons />}
                 closePopover={() => setShowPopover(false)}
               >
-                <div className="px-4 py-4">
-                  <EndpointSettings
-                    className="[&::-webkit-scrollbar]:w-2"
-                    conversation={conversation}
-                    setOption={setOption}
-                  />
-                  <AlternativeSettings conversation={conversation} setOption={setOption} />
-                </div>
+
               </OptionsPopover>
             )}
-            {interfaceConfig?.presets === true && (
-              <SaveAsPresetDialog
-                open={saveAsDialogShow}
-                onOpenChange={setSaveAsDialogShow}
-                preset={
-                  tConvoUpdateSchema.parse({
-                    ...conversation,
-                  }) as TPreset
-                }
-              />
-            )}
+
             {interfaceConfig?.parameters === true && (
               <PluginStoreDialog
                 isOpen={showPluginStoreDialog}
