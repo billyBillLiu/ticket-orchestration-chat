@@ -190,7 +190,7 @@ export type ArchiveConversationOptions = MutationOptions<
 
 
 
-export type ForkConvoOptions = MutationOptions<types.TForkConvoResponse, types.TForkConvoRequest>;
+
 
 export type CreateSharedLinkOptions = MutationOptions<
   types.TSharedLink,

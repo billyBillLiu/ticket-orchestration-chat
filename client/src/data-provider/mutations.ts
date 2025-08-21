@@ -548,35 +548,7 @@ export const useDeleteConversationMutation = (
 
 
 
-export const useForkConvoMutation = (
-  options?: t.ForkConvoOptions,
-): UseMutationResult<t.TForkConvoResponse, unknown, t.TForkConvoRequest, unknown> => {
-  const queryClient = useQueryClient();
-  const { onSuccess, ..._options } = options || {};
 
-  return useMutation((payload: t.TForkConvoRequest) => dataService.forkConversation(payload), {
-    onSuccess: (data, vars, context) => {
-      if (!vars.conversationId) {
-        return;
-      }
-      const forkedConversation = data.conversation;
-      const forkedConversationId = forkedConversation.conversationId;
-      if (!forkedConversationId) {
-        return;
-      }
-
-      queryClient.setQueryData([QueryKeys.conversation, forkedConversationId], forkedConversation);
-      addConvoToAllQueries(queryClient, forkedConversation);
-      queryClient.setQueryData([QueryKeys.messages, forkedConversationId], data.messages);
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.allConversations],
-        refetchPage: (_, index) => index === 0,
-      });
-      onSuccess?.(data, vars, context);
-    },
-    ..._options,
-  });
-};
 
 export const useUploadConversationsMutation = (
   _options?: t.MutationOptions<t.TImportResponse, FormData>,

@@ -7,7 +7,7 @@ Work in progress. Currently migrating backend from Node to FastAPI
 - Agents
 - Use agents to create tickets
 - Implement Archive Comvos
-- Remove Other Useless Features (forking, right-side bar etc.)
+- Remove Other Useless Features (right-side bar etc.)
 - Refactor/Simplify existing features (models/endpoints and such)
 - Fix E2E Testing
 

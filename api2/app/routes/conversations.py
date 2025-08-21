@@ -432,37 +432,6 @@ async def delete_all_conversations(
             detail=f"Error deleting all conversations: {str(e)}"
         )
 
-@router.post("/fork")
-async def fork_conversation(
-    conversationId: str,
-    messageId: Optional[str] = None,
-    option: Optional[str] = None,
-    splitAtTarget: Optional[bool] = None,
-    latestMessageId: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Fork a conversation.
-    Note: This is a stub implementation - you may want to implement actual forking logic.
-    """
-    try:
-        # For now, return a placeholder response
-        # In a real implementation, you would create a new conversation based on the original
-        forked_conversation_id = f"forked_{conversationId}"
-        
-        return ApiResponse.create_success(
-            data={
-                "conversationId": forked_conversation_id,
-                "message": "Conversation forked successfully"
-            },
-            message="Conversation forked successfully"
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error forking conversation: {str(e)}"
-        )
+
 
  

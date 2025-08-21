@@ -597,9 +597,7 @@ export const getCustomConfigSpeech = (): Promise<t.TCustomConfigSpeechResponse> 
 
 
 
-export function forkConversation(payload: t.TForkConvoRequest): Promise<t.TForkConvoResponse> {
-  return request.post(endpoints.forkConversation(), payload);
-}
+
 
 export function deleteConversation(payload: t.TDeleteConversationRequest) {
   return request.deleteWithOptions(endpoints.deleteConversation(), { data: { arg: payload } });

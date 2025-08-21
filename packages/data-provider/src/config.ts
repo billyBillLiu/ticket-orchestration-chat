@@ -1435,12 +1435,8 @@ export enum LocalStorageKeys {
   ASST_ID_PREFIX = 'assistant_id__',
   /** Prefix key for the last selected agent ID by index */
   AGENT_ID_PREFIX = 'agent_id__',
-  /** Key for the last selected fork setting */
-  FORK_SETTING = 'forkSetting',
-  /** Key for remembering the last selected option, instead of manually selecting */
-  REMEMBER_FORK_OPTION = 'rememberDefaultFork',
-  /** Key for remembering the split at target fork option modifier */
-  FORK_SPLIT_AT_TARGET = 'splitAtTarget',
+
+
   /** Key for saving text drafts */
   TEXT_DRAFT = 'textDraft_',
   /** Key for saving file drafts */
@@ -1463,16 +1459,7 @@ export enum LocalStorageKeys {
   LAST_AGENT_MODEL = 'lastAgentModel',
 }
 
-export enum ForkOptions {
-  /** Key for direct path option */
-  DIRECT_PATH = 'directPath',
-  /** Key for including branches */
-  INCLUDE_BRANCHES = 'includeBranches',
-  /** Key for target level fork (default) */
-  TARGET_LEVEL = 'targetLevel',
-  /** Default option */
-  DEFAULT = 'default',
-}
+
 
 /**
  * Enum for Cohere related constants

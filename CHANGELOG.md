@@ -76,7 +76,7 @@ Changes from v0.7.8-rc1 to v0.7.8.
 - 📜 docs: CHANGELOG for release v0.7.8-rc1 by **@github-actions[bot]** in [#7153](https://github.com/danny-avila/LibreChat/pull/7153)
 - 🔄 refactor: Artifact Visibility Management by **@danny-avila** in [#7181](https://github.com/danny-avila/LibreChat/pull/7181)
 - 📦 chore: Bump Package Security by **@danny-avila** in [#7183](https://github.com/danny-avila/LibreChat/pull/7183)
-- 🌿 refactor: Unmount Fork Popover on Hide for Better Performance by **@danny-avila** in [#7189](https://github.com/danny-avila/LibreChat/pull/7189)
+
 - 🧰 chore: ESLint configuration to enforce Prettier formatting rules by **@mawburn** in [#7186](https://github.com/danny-avila/LibreChat/pull/7186)
 - 🎨 style: Improve KaTeX Rendering for LaTeX Equations by **@andresgit** in [#7223](https://github.com/danny-avila/LibreChat/pull/7223)
 - 📝 docs: Update `.env.example` Google models by **@marlonka** in [#7254](https://github.com/danny-avila/LibreChat/pull/7254)
@@ -153,7 +153,7 @@ Changes from v0.7.7 to v0.7.8-rc1.
 - 🗑️ a11y: Add Accessible Name to Button for File Attachment Removal by **@kangabell** in [#6709](https://github.com/danny-avila/LibreChat/pull/6709)
 - ⌨️ a11y: enhance accessibility & visual consistency by **@berry-13** in [#6866](https://github.com/danny-avila/LibreChat/pull/6866)
 - 🙌 a11y: Searchbar/Conversations List Focus by **@danny-avila** in [#7096](https://github.com/danny-avila/LibreChat/pull/7096)
-- 👐 a11y: Improve Fork and SplitText Accessibility by **@danny-avila** in [#7147](https://github.com/danny-avila/LibreChat/pull/7147)
+
 
 ### 🔧 Fixes
 

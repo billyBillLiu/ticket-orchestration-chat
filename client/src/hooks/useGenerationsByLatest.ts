@@ -68,10 +68,7 @@ export default function useGenerationsByLatest({
     !branchingSupported ||
     (!isEditableEndpoint && !isCreatedByUser);
 
-  const forkingSupported = !isAssistantsEndpoint(endpoint) && !searchResult;
-
   return {
-    forkingSupported,
     continueSupported,
     regenerateEnabled,
     isEditableEndpoint,

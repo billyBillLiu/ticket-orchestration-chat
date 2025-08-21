@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import FontSizeSelector from './FontSizeSelector';
-import { ForkSettings } from './ForkSettings';
+
 import ChatDirection from './ChatDirection';
 import ToggleSwitch from '../ToggleSwitch';
 import store from '~/store';
@@ -97,7 +97,7 @@ function Chat() {
           />
         </div>
       ))}
-      <ForkSettings />
+
     </div>
   );
 }
