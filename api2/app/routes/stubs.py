@@ -86,4 +86,33 @@ async def get_banner():
             "type": "info"
         },
         message="Banner information retrieved"
+    )
+
+# SHARE
+@router.get("/share/link/{link_id}")
+async def get_shared_link(link_id: str):
+    """Get shared conversation link - stub implementation"""
+    return ApiResponse.create_success(
+        data={
+            "id": link_id,
+            "conversationId": None,
+            "shareId": link_id,
+            "title": "Shared Conversation",
+            "createdAt": None,
+            "updatedAt": None,
+            "isPublic": False
+        },
+        message="Shared link retrieved successfully"
+    )
+
+# AGENT TOOL CALLS history
+@router.get("/agents/tools/calls")
+async def get_agent_tool_calls(conversationId: str = None):
+    """Get agent tool calls for a conversation - stub implementation"""
+    return ApiResponse.create_success(
+        data={
+            "calls": [],
+            "total": 0
+        },
+        message="Agent tool calls retrieved successfully"
     ) 

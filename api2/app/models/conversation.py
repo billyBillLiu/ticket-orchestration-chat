@@ -12,6 +12,8 @@ class Conversation(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_archived = Column(Boolean, default=False)
+    model = Column(String(255), nullable=True)
+    endpoint = Column(String(255), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="conversations")

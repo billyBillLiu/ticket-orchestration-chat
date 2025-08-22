@@ -5,10 +5,11 @@ from pydantic import BaseModel
 
 from app.models import get_db
 from app.models.user import User
-from app.schemas.conversation import ConversationResponse, ConversationListResponse
+from app.schemas.conversation import ConversationResponse
 from app.routes.auth import get_current_user
 from app.services.conversation_service import ConversationService
 from app.utils.response_utils import ApiResponse
+from app.constants import ACTIVE_MODEL, ACTIVE_PROVIDER
 
 # Request model for the update endpoint
 class UpdateConversationRequest(BaseModel):
@@ -39,18 +40,20 @@ async def get_conversations(
             current_user.id, page, limit, archived
         )
         
-        # Convert to response models
-        conversation_responses = [ConversationResponse.model_validate(conv) for conv in conversations]
+        # Convert to response models and add model/endpoint info
+        conversation_responses = []
+        for conv in conversations:
+            response = ConversationResponse.model_validate(conv)
+            # Set model and endpoint from conversation or use defaults
+            response.model = conv.model or ACTIVE_MODEL
+            response.endpoint = conv.endpoint or ACTIVE_PROVIDER
+            conversation_responses.append(response)
         
         # Debug: Log the response data
         response_data = {
             "conversations": [conv.model_dump() for conv in conversation_responses],
             "nextCursor": None  # For now, no pagination cursor
         }
-        
-        # DEBUGGING PRINTS
-        # print(f"DEBUG: Returning conversations for user {current_user.id}: {len(conversation_responses)} conversations")
-        # print(f"DEBUG: Response data: {response_data}")
         
         return ApiResponse.create_success(
             data=response_data,
@@ -76,8 +79,13 @@ async def create_conversation(
         conversation_service = ConversationService(db)
         conversation = conversation_service.create_conversation(current_user.id, title)
         
+        # Create response with model/endpoint info
+        response = ConversationResponse.model_validate(conversation)
+        response.model = conversation.model or ACTIVE_MODEL
+        response.endpoint = conversation.endpoint or ACTIVE_PROVIDER
+        
         return ApiResponse.create_success(
-            data=ConversationResponse.model_validate(conversation).model_dump(),
+            data=response.model_dump(),
             message="Conversation created successfully"
         )
         
@@ -100,8 +108,13 @@ async def get_conversation(
         conversation_service = ConversationService(db)
         conversation = conversation_service.get_conversation(conversation_id, current_user.id)
         
+        # Create response with model/endpoint info
+        response = ConversationResponse.model_validate(conversation)
+        response.model = conversation.model or ACTIVE_MODEL
+        response.endpoint = conversation.endpoint or ACTIVE_PROVIDER
+        
         return ApiResponse.create_success(
-            data=ConversationResponse.model_validate(conversation).model_dump(),
+            data=response.model_dump(),
             message="Conversation retrieved successfully"
         )
         

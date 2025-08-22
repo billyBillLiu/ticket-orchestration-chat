@@ -6,7 +6,8 @@ from datetime import datetime
 from app.models.conversation import Conversation
 from app.models.user import User
 from app.services.base_service import BaseService
-from app.schemas.conversation import ConversationResponse, ConversationListResponse
+from app.schemas.conversation import ConversationResponse
+from app.constants import ACTIVE_MODEL, ACTIVE_PROVIDER
 
 class ConversationService(BaseService):
     """
@@ -60,9 +61,12 @@ class ConversationService(BaseService):
         Returns:
             Created conversation
         """
+        
         new_conversation = Conversation(
             user_id=user_id,
-            title=title or "New Conversation"
+            title=title or "New Conversation",
+            model=ACTIVE_MODEL,
+            endpoint=ACTIVE_PROVIDER
         )
         
         self.db.add(new_conversation)

@@ -20,6 +20,8 @@ class ConversationResponse(BaseModel):
     createdAt: datetime = Field(..., alias="created_at")
     updatedAt: datetime = Field(..., alias="updated_at")
     isArchived: bool = Field(False, alias="is_archived")
+    model: Optional[str] = None
+    endpoint: Optional[str] = None
 
     @field_validator('conversationId', 'user', mode='before')
     @classmethod

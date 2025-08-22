@@ -260,7 +260,7 @@ export const getResponseSender = (endpointOption: t.TEndpointOption): string => 
     } else if (model && (model.includes('mistral') || model.includes('codestral'))) {
       return 'Mistral';
     } else if (model && model.includes('deepseek')) {
-      return 'Deepseek';
+      return model; // Return the actual model name instead of hardcoded 'Deepseek'
     } else if (model && model.includes('gpt-')) {
       const gptVersion = extractGPTVersion(model);
       return gptVersion || 'GPT';

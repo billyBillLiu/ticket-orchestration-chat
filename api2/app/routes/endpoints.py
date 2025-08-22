@@ -13,6 +13,7 @@ import json
 import logging
 from app.utils.response_utils import ApiResponse
 from app.config import settings
+from app.constants import ACTIVE_MODEL, ACTIVE_PROVIDER
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,11 @@ async def get_messages(conversation_id: str, db: Session = Depends(get_db), curr
     # Convert to the format expected by the frontend
     result = []
     for msg in messages:
+        # Get conversation to get model info
+        conversation = db.query(Conversation).filter(Conversation.id == msg.conversation_id).first()
+        model = conversation.model if conversation else ACTIVE_MODEL
+        endpoint = conversation.endpoint if conversation else ACTIVE_PROVIDER
+        
         result.append({
             "messageId": msg.message_id,
             "conversationId": str(msg.conversation_id),
@@ -99,8 +105,8 @@ async def get_messages(conversation_id: str, db: Session = Depends(get_db), curr
             "unfinished": False,
             "error": False,
             "isEdited": False,
-            "model": None,
-            "endpoint": "custom"
+            "model": model,
+            "endpoint": endpoint
         })
     
     return result
