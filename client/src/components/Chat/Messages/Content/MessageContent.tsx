@@ -11,6 +11,8 @@ import EditMessage from './EditMessage';
 import { useLocalize } from '~/hooks';
 import Container from './Container';
 import Markdown from './Markdown';
+import AgentQuestion from './AgentQuestion';
+import AgentTicketResult from './AgentTicketResult';
 import { cn } from '~/utils';
 import store from '~/store';
 
@@ -80,6 +82,40 @@ const DisplayMessage = ({ text, isCreatedByUser, message, showCursor }: TDisplay
     () => message.messageId === latestMessage?.messageId,
     [message.messageId, latestMessage?.messageId],
   );
+
+  // Check if this is an agent response
+  const agentData = message.agent_data;
+  
+  if (agentData && !isCreatedByUser) {
+    // Handle agent question
+    if (agentData.type === 'agent_question') {
+      return (
+        <Container message={message}>
+          <AgentQuestion
+            question={agentData.question}
+            session_id={agentData.session_id}
+            conversation_id={message.conversationId || ''}
+            onAnswer={(answer) => {
+              // This will be handled by the agent-answer endpoint
+              console.log('Agent answer submitted:', answer);
+            }}
+          />
+        </Container>
+      );
+    }
+    
+    // Handle agent completion
+    if (agentData.type === 'agent_complete') {
+      return (
+        <Container message={message}>
+          <AgentTicketResult
+            tickets={agentData.tickets}
+            plan={agentData.plan}
+          />
+        </Container>
+      );
+    }
+  }
 
   let content: React.ReactElement;
   if (!isCreatedByUser) {
