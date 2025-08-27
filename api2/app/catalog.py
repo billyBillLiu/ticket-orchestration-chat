@@ -2,7 +2,6 @@
 
 # Common urgency levels for all ticket types
 URGENCY_LEVELS = ["critical", "high", "medium", "low"]
-
 # Loan Tape
 TYPE_OF_RERUN_LOAN_TAPE = ["final", "estimated"]
 VENDORS_LOAN_TAPE = [
@@ -51,15 +50,12 @@ VENDORS_LOAN_TAPE = [
   "Sound Point Estimated Loan Tape",
   "Theorem Final Estimated Loan Tape",
 ]
-
-
 # Investor Reporting Incident
 TYPE_OF_RERUN_INVESTOR = [
     "investor reporting manual rerun",
     "final loan tape rerun",
     "none"
 ]
-
 # Investor Reports Manual Rerun
 NON_ORIGINATION_TYPES = ["loan history", "loan transaction", "ucc", "none of the above"]
 ORIGINATION_TYPES = [
@@ -67,7 +63,6 @@ ORIGINATION_TYPES = [
     "previous day originations",
     "none of the above"
 ]
-
 # Manual Loan Verifications
 FROM_INVESTORS_MANUAL_LOAN_VERIFICATIONS = [
   "Marlette",
@@ -151,7 +146,7 @@ FROM_INVESTORS_MANUAL_LOAN_VERIFICATIONS = [
   "The Phoenix AMITIM",
   "The Phoenix Insurance Group",
   "Theorem 2022-3 v2",
-  "Theorem 2023-1"
+  "Theorem 2023-1",
   "Theorem 2023-2",
   "Theorem Bulk 345 v2",
   "Theorem Custom Product v2",
@@ -210,7 +205,6 @@ TO_RECIPIENTS_MANUAL_LOAN_VERIFICATIONS = [
   "Wilmington",
   "Recipient not listed"
 ]
-
 # SFTP Requests
 INVESTORS_SFTP_REQUESTS = [
   "Bawag",
@@ -259,7 +253,6 @@ INVESTORS_SFTP_REQUESTS = [
   "Zero Variance",
   "Investor is not listed"
 ]
-
 # Generic Document Verification DRqwerqwerqwerqqqq
 INVESTORS_GENERIC = [
   "Pimco",
@@ -272,47 +265,33 @@ INVESTORS_GENERIC = [
   "Blue Ridge Bank",
   "Goldman"
 ]
-# --------------------
 # Datadog
-# --------------------
 SOURCE_TYPES = ["k8s", "lambda", "other"]
 SERVICE_FIELDS = ["datadog logs", "cloud watch metrics", "sumo logs", "cloud watch logs", "datadog metrics", "other"]  # no fixed options yet
 INFRASTRUCTURE_TYPES = ["kubernetes", "lambda", "database", "other aws srvices"]
 SOURCE_METRICS = ["datadog logs", "cloud watch metrics", "sumo logs", "cloud watch logs", "datadog metrics", "other"]
 ALERT_PRIORITIES = ["P1: Critical", "P2: High", "P3: Medium", "P4: Low", "P5: Info"]
 ENVIRONMENTS = ["prd", "sbx", "uat"]
-
-# --------------------
 # GoAnywhere
-# --------------------
 PRIORITY_LEVELS_ADHOC = ["Low", "Medium", "High", "Urgent"]
 TRANSFER_TYPES = ["One-time Transfer", "Recurring Transfer"]
 FREQUENCY = ["daily", "weekly", "monthly"]
 SFTP_OR_S3 = ["sftp", "s3 bucket"]
-
-# --------------------
 # JAMS
-# --------------------
 JAMS_REQUEST_TYPES = ["Add or Create a new Job/Sequence", "Change or Modify an Existing Job/Setup", "Delete an Existing Job/Setup", "Hold a Job or Sequence"]
 AGENT_NODES = ["utility.marlettefunding.com", "prd-sas03.marlettefunding.com", "sas-app-jobs.marlette.ad", "PRD-JAMS01", "uat-docker-jams-nlb-ce0d419dc754d783.elb.us-east-1.amazonaws.com", "ip-10-71-142-13.ec2.internal", "ip-10-90-59-61.ec2.internal"]  # fill with actual list later
 PRIORITY_JAMS = ["Low", "Medium", "High", "N/A"]
 JOB_FREQUENCY = ["daily", "weekly", "monthly", "n/a"]
-
-# --------------------
 # Config Changes
-# --------------------
 CHANGE_TYPES = ["add", "update", "remove"]
-
-# --------------------
-# SFTP / Investors
-# --------------------
 # SFTP Migration and New Connectivity
 AUTHENTICATION_TYPES = ["ssh key", "password"]
 SFTP_TYPES = ["basic sftp", "sftp with ssh key authentication"]
 ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Blowfish"]
 
 
-{
+
+CATALOG = {
   "department": [
     "Dialer & WFM Services",
     "Enterprise Risk Management",
@@ -345,7 +324,7 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             {
               "name": "vendor_name",
               "type": "choice",
-              "options_source": VENDORS_LOAN_TAPE,
+              "options": VENDORS_LOAN_TAPE,
               "description": ""
             },
             {
@@ -412,13 +391,13 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             {
               "name": "from_investor",
               "type": "choice",
-              "options_source": FROM_INVESTORS_MANUAL_LOAN_VERIFICATIONS,
+              "options": FROM_INVESTORS_MANUAL_LOAN_VERIFICATIONS,
               "description": ""
             },
             {
               "name": "to_recipient",
               "type": "choice",
-              "options_source": TO_RECIPIENTS_MANUAL_LOAN_VERIFICATIONS,
+              "options": TO_RECIPIENTS_MANUAL_LOAN_VERIFICATIONS,
               "description": ""
             },
             { "name": "naming_convention", "type": "string", "description": "Naming convention for file. E.g. 'LoanAgreement_mft2021d_YYYYMMDD'" },
@@ -433,13 +412,13 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             {
               "name": "from_investor",
               "type": "choice",
-              "options_source": INVESTORS_SFTP_REQUESTS,
+              "options": INVESTORS_SFTP_REQUESTS,
               "description": "Investor to send the transfer"
             },
             {
               "name": "to_recipient",
               "type": "choice",
-              "options_source": INVESTORS_SFTP_REQUESTS,
+              "options": INVESTORS_SFTP_REQUESTS,
               "description": "Recipient to receive the transfer"
             },
             { "name": "sftp_s3_remote_folder", "type": "rich_text", "description": r"E.g sftp://example.com/path or s3://bucket-name/path" },
@@ -466,7 +445,7 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             {
               "name": "investor_name",
               "type": "choice",
-              "options_source": INVESTORS_GENERIC,
+              "options": INVESTORS_GENERIC,
               "description": ""
             }
           ]
@@ -489,7 +468,7 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             {
               "name": "service_field",
               "type": "choice",
-              "options_source": SERVICE_FIELDS,
+              "options": SERVICE_FIELDS,
               "description": "Service logs which are needed to rehydrate"
             },
             { "name": "start_date", "type": "date", "description": "" },
@@ -515,7 +494,7 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             {
               "name": "service_field",
               "type": "choice",
-              "options_source": SERVICE_FIELDS,
+              "options": SERVICE_FIELDS,
               "description": "Name of the service for logs."
             }
           ]
@@ -528,9 +507,9 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             { "name": "summary", "type": "string", "description": "" },
             { "name": "description", "type": "rich_text", "description": "" },
             { "name": "scope_of_work", "type": "string", "description": "" },
-            { "name": "infrastructure_type", "type": "choice", "options_source": INFRASTRUCTURE_TYPES, "description": "" },
+            { "name": "infrastructure_type", "type": "choice", "options": INFRASTRUCTURE_TYPES, "description": "" },
             { "name": "pod_name", "type": "string", "description": "" },
-            { "name": "type_of_source_metric", "type": "choice", "options_source": SOURCE_METRICS, "description": "Source of error or informational data. i.e aws metrics, sumo logs, or other" },
+            { "name": "type_of_source_metric", "type": "choice", "options": SOURCE_METRICS, "description": "Source of error or informational data. i.e aws metrics, sumo logs, or other" },
             { "name": "env", "type": "choice", "options": ENVIRONMENTS, "description": "" },
             { "name": "alert_priority", "type": "choice", "options": ALERT_PRIORITIES, "description": "" },
             { "name": "service_name", "type": "string", "description": "" },
@@ -582,7 +561,7 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             { "name": "email", "type": "string", "description": "" },
             { "name": "summary", "type": "string", "description": "" },
             { "name": "request_type", "type": "choice", "options": JAMS_REQUEST_TYPES, "description": "Select the type of request you are making" },
-            { "name": "agent_nodes", "type": "choice", "options_source": AGENT_NODES, "description": "Select the agent nodes where the job should run" },
+            { "name": "agent_nodes", "type": "choice", "options": AGENT_NODES, "description": "Select the agent nodes where the job should run" },
             { "name": "priority", "type": "choice", "options": PRIORITY_JAMS, "description": "Job's Priority for Xmatters Alert." },
             { "name": "job_frequency", "type": "choice", "options": JOB_FREQUENCY, "description": "Daily, Weekly, Monthly" },
             { "name": "job_name", "type": "rich_text", "description": "If applicable, provide the name of the job(s) to be modified or deleted." },
@@ -674,7 +653,7 @@ ENCRYPTION_METHODS = ["AES-128", "AES-192", "AES-256", "RSA", "DES", "3DES", "Bl
             { "name": "xmatters_questions", "type": "rich_text", "description": "Here's what I need to know about Xmatters?" },
             { "name": "on_call_questions", "type": "rich_text", "description": "How does XMatters work with my on-call schedule?" },
             { "name": "workflow_questions", "type": "rich_text", "description": "How does XMatters work with my workflow(s)?" },
-            { "name": "support_questions", "type": "rich_text", "description": "How can we best support you? Feel free to add any additonal details, question, or comments." }
+            { "name": "support_questions", "type": "rich_text", "description": "How can we best support you? Feel free to add any additonal details, question, or comments." },
             { "name": "proposed_meeting_date", "type": "date", "description": "Provide a proposed meeting date" },
             { "name": "proposed_meeting_time", "type": "time", "description": "Provide a proposed meeting time" },
           ]

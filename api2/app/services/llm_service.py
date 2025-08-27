@@ -412,3 +412,35 @@ class LLMService:
 # Create a singleton instance
 llm_service = LLMService()
 
+# Add synchronous chat function for the planner service
+def chat(messages: list[dict], *, model: str, format: str | None = None, options: dict | None = None) -> str:
+    """
+    Call Ollama's /api/chat and return the message content as a string.
+    If format='json', return the raw JSON string (not prettified).
+    """
+    import asyncio
+    
+    # Convert dict messages to Message objects
+    message_objects = [Message(**msg) for msg in messages]
+    
+    # Extract options
+    temperature = options.get("temperature", 0.7) if options else 0.7
+    max_tokens = options.get("num_ctx", 1000) if options else 1000
+    
+    # Run the async function synchronously
+    async def _async_chat():
+        async with llm_service as service:
+            response = await service.generate_non_streaming_response(
+                messages=message_objects,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            return response.content
+    
+    try:
+        return asyncio.run(_async_chat())
+    except Exception as e:
+        logger.error(f"Error in synchronous chat: {e}")
+        return f"Error: {str(e)}"
+
