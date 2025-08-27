@@ -74,6 +74,13 @@ def render_question(m: MissingField) -> dict:
     options = None
     if f.type in ("choice", "multi_choice"):
         options = resolve_field_options(f.model_dump())
+        
+        # Add options to the prompt text for choice fields
+        if options:
+            if f.type == "choice":
+                prompt_text += f"\n\nAvailable options:\n" + "\n".join([f"• {option}" for option in options])
+            elif f.type == "multi_choice":
+                prompt_text += f"\n\nAvailable options (select one or more):\n" + "\n".join([f"• {option}" for option in options])
 
     return {
         "text": prompt_text,
@@ -90,5 +97,75 @@ def apply_answer(plan: TicketPlan, item_index: int, field_name: str, value: Any)
     - For multi_choice, `value` must be a list[str].
     - For date/time, keep as ISO strings that your UI components produce.
     """
-    plan.items[item_index].form[field_name] = value
+    # Get the field definition to process the value correctly
+    item = plan.items[item_index]
+    spec = find_ticket_spec(item.service_area, item.category, item.ticket_type)
+    
+    if not spec:
+        # If spec can't be found, just store the raw value
+        plan.items[item_index].form[field_name] = value
+        return plan
+    
+    # Find the field definition
+    field_def = None
+    for field in spec["fields"]:
+        if field["name"] == field_name:
+            field_def = FieldDef(**field)
+            break
+    
+    if field_def:
+        try:
+            # Process the value according to field type
+            from app.services.field_processor import field_processor
+            processed_value = field_processor.process_field_value(str(value), field_def)
+            plan.items[item_index].form[field_name] = processed_value
+            print(f"✅ VALIDATOR: Processed field '{field_name}' with value: {processed_value}")
+        except ValueError as e:
+            print(f"❌ VALIDATOR: Field processing failed: {e}")
+            # Store the raw value if processing fails
+            plan.items[item_index].form[field_name] = value
+    else:
+        # Field definition not found, store raw value
+        plan.items[item_index].form[field_name] = value
+    
+    return plan
+
+async def apply_answer_async(plan: TicketPlan, item_index: int, field_name: str, value: Any) -> TicketPlan:
+    """
+    Async version of apply_answer that can use LLM for choice matching.
+    Insert the user's answer into the right TicketItem.form slot.
+    - For multi_choice, `value` must be a list[str].
+    - For date/time, keep as ISO strings that your UI components produce.
+    """
+    # Get the field definition to process the value correctly
+    item = plan.items[item_index]
+    spec = find_ticket_spec(item.service_area, item.category, item.ticket_type)
+    
+    if not spec:
+        # If spec can't be found, just store the raw value
+        plan.items[item_index].form[field_name] = value
+        return plan
+    
+    # Find the field definition
+    field_def = None
+    for field in spec["fields"]:
+        if field["name"] == field_name:
+            field_def = FieldDef(**field)
+            break
+    
+    if field_def:
+        try:
+            # Process the value according to field type using async processor
+            from app.services.async_field_processor import async_field_processor
+            processed_value = await async_field_processor.process_field_value(str(value), field_def)
+            plan.items[item_index].form[field_name] = processed_value
+            print(f"✅ VALIDATOR: Async processed field '{field_name}' with value: {processed_value}")
+        except ValueError as e:
+            print(f"❌ VALIDATOR: Async field processing failed: {e}")
+            # Store the raw value if processing fails
+            plan.items[item_index].form[field_name] = value
+    else:
+        # Field definition not found, store raw value
+        plan.items[item_index].form[field_name] = value
+    
     return plan

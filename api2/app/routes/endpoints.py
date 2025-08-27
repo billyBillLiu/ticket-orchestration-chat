@@ -17,7 +17,7 @@ from app.constants import ACTIVE_MODEL, ACTIVE_PROVIDER
 
 # Import agentic ticket creation components
 from app.services.planner_service import plan_from_text, plan_from_text_async
-from app.services.validator_service import find_missing_fields, render_question, apply_answer
+from app.services.validator_service import find_missing_fields, render_question, apply_answer, apply_answer_async
 from app.models.ticket_agent import ConversationState, ChatTurn
 from app.utils.session_store import put, get
 
@@ -84,7 +84,7 @@ async def handle_agentic_ticket_creation(content: str, conversation_id: int, use
         if state.pending:
             print(f"📝 AGENT: User is answering question for field: {state.pending[0].field.name}")
             missing_field = state.pending[0]
-            state.plan = apply_answer(state.plan, missing_field.item_index, missing_field.field.name, content)
+            state.plan = await apply_answer_async(state.plan, missing_field.item_index, missing_field.field.name, content)
             state.turns.append(ChatTurn(role="user", text=content))
             print(f"✅ AGENT: Applied answer to plan")
     
@@ -128,9 +128,27 @@ async def handle_agentic_ticket_creation(content: str, conversation_id: int, use
         put(state)
         
         print(f"✅ AGENT: Created {len(created)} tickets")
+        
+        # Create detailed content with full JSON
+        content_lines = [f"✅ Created {len(created)} ticket(s):"]
+        for i, ticket in enumerate(created):
+            content_lines.append(f"\n**Ticket {i+1}: {ticket['title']} ({ticket['pseudo_id']})**")
+            content_lines.append(f"Service Area: {ticket['service_area']}")
+            content_lines.append(f"Category: {ticket['category']}")
+            content_lines.append(f"Type: {ticket['ticket_type']}")
+            content_lines.append("Form Data:")
+            content_lines.append("```json")
+            content_lines.append(json.dumps(ticket['form'], indent=2))
+            content_lines.append("```")
+        
+        content_lines.append(f"\n**Complete Plan JSON:**")
+        content_lines.append("```json")
+        content_lines.append(json.dumps(state.plan.model_dump(), indent=2))
+        content_lines.append("```")
+        
         return {
             "type": "agent_complete",
-            "content": f"✅ Created {len(created)} ticket(s):\n" + "\n".join([f"• {t['title']} ({t['pseudo_id']})" for t in created]),
+            "content": "\n".join(content_lines),
             "tickets": created,
             "plan": state.plan.model_dump()
         }
@@ -684,7 +702,7 @@ async def answer_agent_question(request: Request, db: Session = Depends(get_db),
             )
         
         # Apply answer to the plan
-        state.plan = apply_answer(state.plan, missing_field, answer)
+        state.plan = await apply_answer_async(state.plan, missing_field.item_index, missing_field.field.name, answer)
         state.turns.append(ChatTurn(role="user", text=answer))
         
         # Check for more missing fields
@@ -720,9 +738,26 @@ async def answer_agent_question(request: Request, db: Session = Depends(get_db),
             state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully!"))
             put(state)
             
+            # Create detailed content with full JSON
+            content_lines = [f"✅ Created {len(created)} ticket(s):"]
+            for i, ticket in enumerate(created):
+                content_lines.append(f"\n**Ticket {i+1}: {ticket['title']} ({ticket['pseudo_id']})**")
+                content_lines.append(f"Service Area: {ticket['service_area']}")
+                content_lines.append(f"Category: {ticket['category']}")
+                content_lines.append(f"Type: {ticket['ticket_type']}")
+                content_lines.append("Form Data:")
+                content_lines.append("```json")
+                content_lines.append(json.dumps(ticket['form'], indent=2))
+                content_lines.append("```")
+            
+            content_lines.append(f"\n**Complete Plan JSON:**")
+            content_lines.append("```json")
+            content_lines.append(json.dumps(state.plan.model_dump(), indent=2))
+            content_lines.append("```")
+            
             return {
                 "type": "agent_complete",
-                "content": f"✅ Created {len(created)} ticket(s):\n" + "\n".join([f"• {t['title']} ({t['pseudo_id']})" for t in created]),
+                "content": "\n".join(content_lines),
                 "tickets": created,
                 "plan": state.plan.model_dump()
             }
