@@ -15,7 +15,125 @@ from app.utils.response_utils import ApiResponse
 from app.config import settings
 from app.constants import ACTIVE_MODEL, ACTIVE_PROVIDER
 
+# Import agentic ticket creation components
+from app.services.planner_service import plan_from_text, plan_from_text_async
+from app.services.validator_service import find_missing_fields, render_question, apply_answer
+from app.models.ticket_agent import ConversationState, ChatTurn
+from app.utils.session_store import put, get
+
 logger = logging.getLogger(__name__)
+
+def is_ticket_request(content: str, conversation_id: int = None) -> bool:
+    """Detect if the user message is requesting ticket creation or continuing an agent session"""
+    # First check if there's an active agent session for this conversation
+    if conversation_id is not None:
+        session_id = f"conv_{conversation_id}"
+        state = get(session_id)
+        if state and not state.completed:
+            print(f"🎯 AGENT: Found active session {session_id} with {len(state.pending)} pending questions")
+            return True
+    
+    # Then check for ticket-related keywords
+    ticket_keywords = [
+        "create ticket", "new ticket", "submit ticket", "open ticket",
+        "support request", "help request", "incident report", "bug report",
+        "datadog", "sftp", "jams", "monitoring", "alert", "dashboard",
+        "loan tape", "investor", "rerun", "verification"
+    ]
+    content_lower = content.lower()
+    return any(keyword in content_lower for keyword in ticket_keywords)
+
+async def handle_agentic_ticket_creation(content: str, conversation_id: int, user_email: str = None) -> dict:
+    """Handle ticket creation using the agentic flow"""
+    print(f"🎯 AGENT: Starting agentic ticket creation for conversation {conversation_id}")
+    print(f"💬 AGENT: User content: '{content}'")
+    
+    # Create or get session for this conversation
+    session_id = f"conv_{conversation_id}"
+    state = get(session_id)
+    
+    if not state:
+        print(f"🆕 AGENT: Creating new session: {session_id}")
+        state = ConversationState(session_id=session_id)
+        put(state)
+    else:
+        print(f"📂 AGENT: Using existing session: {session_id}")
+    
+    # Record the user turn
+    state.turns.append(ChatTurn(role="user", text=content))
+    print(f"📝 AGENT: Recorded user turn, total turns: {len(state.turns)}")
+    
+    # If no plan yet, create one
+    if state.plan is None:
+        print(f"📋 AGENT: No plan exists, creating new plan...")
+        state.plan = await plan_from_text_async(content, user_email)
+        state.plan.meta = {"request_text": content, "conversation_id": conversation_id}
+         
+        # Directly set the user's email in all ticket forms
+        if user_email:
+            print(f"📧 AGENT: Setting user email '{user_email}' in all ticket forms")
+            for item in state.plan.items:
+                if "email" in item.form:
+                    item.form["email"] = user_email
+                    print(f"📧 AGENT: Set email for {item.ticket_type}")
+        
+        print(f"✅ AGENT: Plan created with {len(state.plan.items)} items")
+    else:
+        print(f"📋 AGENT: Using existing plan with {len(state.plan.items)} items")
+        # User is answering a question, so apply the answer
+        if state.pending:
+            print(f"📝 AGENT: User is answering question for field: {state.pending[0].field.name}")
+            missing_field = state.pending[0]
+            state.plan = apply_answer(state.plan, missing_field.item_index, missing_field.field.name, content)
+            state.turns.append(ChatTurn(role="user", text=content))
+            print(f"✅ AGENT: Applied answer to plan")
+    
+    # Find missing fields
+    print(f"🔍 AGENT: Finding missing fields...")
+    missing = find_missing_fields(state.plan)
+    state.pending = missing
+    print(f"📊 AGENT: Found {len(missing)} missing fields")
+    
+    if missing:
+        # Ask for next field
+        print(f"❓ AGENT: Asking for field: {missing[0].field.name}")
+        question = render_question(missing[0])
+        state.turns.append(ChatTurn(role="assistant", text=question["text"]))
+        put(state)
+        
+        print(f"✅ AGENT: Returning agent question")
+        return {
+            "type": "agent_question",
+            "content": question["text"],
+            "question": question,
+            "plan_preview": state.plan.model_dump(),
+            "session_id": session_id
+        }
+    else:
+        # Complete - create tickets
+        print(f"🎉 AGENT: All fields complete, creating tickets...")
+        state.completed = True
+        created = [
+            {
+                "pseudo_id": f"{it.service_area.split()[0][:3].upper()}-{1000+i}",
+                "service_area": it.service_area,
+                "category": it.category,
+                "ticket_type": it.ticket_type,
+                "title": it.title,
+                "form": it.form
+            }
+            for i, it in enumerate(state.plan.items)
+        ]
+        state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully!"))
+        put(state)
+        
+        print(f"✅ AGENT: Created {len(created)} tickets")
+        return {
+            "type": "agent_complete",
+            "content": f"✅ Created {len(created)} ticket(s):\n" + "\n".join([f"• {t['title']} ({t['pseudo_id']})" for t in created]),
+            "tickets": created,
+            "plan": state.plan.model_dump()
+        }
 
 router = APIRouter()
 
@@ -168,6 +286,131 @@ async def ask_provider(provider: str, request: Request, db: Session = Depends(ge
         # Mock OpenAI-like response
         response_id = str(uuid.uuid4())
         user_message = messages[-1]["content"] if messages else ""
+        
+        # Check if this is a ticket request and handle with agentic flow
+        if is_ticket_request(user_message, conversation.id):
+            logger.info(f"🎫 Detected ticket request: '{user_message}'")
+            
+            # Handle with agentic ticket creation
+            agent_response = await handle_agentic_ticket_creation(user_message, conversation.id, current_user.email)
+            
+            # Create the user message in database
+            user_message_id = str(uuid.uuid4())
+            parent_message_id = data.get("parentMessageId", "00000000-0000-0000-0000-000000000000")
+            
+            user_msg = Message(
+                message_id=user_message_id,
+                conversation_id=conversation.id,
+                parent_message_id=parent_message_id,
+                role="user",
+                content=user_message,
+                is_created_by_user=True
+            )
+            db.add(user_msg)
+            db.commit()
+            
+            # Note: We'll create the assistant message in the streaming function to avoid duplicate insertion
+            
+            # Create the request message for the frontend
+            request_message = {
+                "messageId": user_message_id,
+                "conversationId": str(conversation.id),
+                "parentMessageId": parent_message_id,
+                "sender": "user",
+                "text": user_message,
+                "isCreatedByUser": True,
+                "createdAt": user_msg.created_at.isoformat(),
+                "updatedAt": user_msg.created_at.isoformat(),
+                "unfinished": False,
+                "error": False,
+                "isEdited": False,
+                "model": model,
+                "endpoint": "custom"
+            }
+            
+            # Return agentic response as streaming response
+            async def generate_agentic_stream():
+                # Send the created event first to set up the messages
+                created_data = {
+                    "created": True,
+                    "message": request_message
+                }
+                yield f"event: message\ndata: {json.dumps(created_data)}\n\n"
+                
+                # Create the assistant message for agentic response
+                assistant_msg = Message(
+                    message_id=response_id,
+                    conversation_id=conversation.id,
+                    parent_message_id=user_message_id,
+                    role="assistant",
+                    content=agent_response["content"],
+                    is_created_by_user=False
+                )
+                
+                # Store the assistant message in database
+                try:
+                    db.add(assistant_msg)
+                    db.commit()
+                except Exception as e:
+                    db.rollback()
+                    logger.error(f"Database error storing assistant message: {e}")
+                
+                # Send the agentic response message as regular chat (no special agent_data)
+                agentic_response = {
+                     "messageId": response_id,
+                     "conversationId": str(conversation.id),
+                     "parentMessageId": user_message_id,
+                     "sender": "Ticket Bot",
+                     "text": agent_response["content"],
+                     "isCreatedByUser": False,
+                     "createdAt": assistant_msg.created_at.isoformat() if assistant_msg.created_at else datetime.now().isoformat(),
+                     "updatedAt": datetime.now().isoformat(),
+                     "model": model,
+                     "endpoint": "custom",
+                     "unfinished": False,
+                     "error": False,
+                     "isEdited": False
+                     # Removed agent_data to make it appear as regular chat
+                 }
+                
+                yield f"event: message\ndata: {json.dumps(agentic_response)}\n\n"
+                
+                # Send final response data
+                final_data = {
+                    "final": True,
+                    "title": conversation.title,
+                    "conversation": {
+                        "conversationId": str(conversation.id),
+                        "title": conversation.title,
+                        "user": str(conversation.user_id),
+                        "createdAt": conversation.created_at.isoformat(),
+                        "updatedAt": conversation.updated_at.isoformat(),
+                        "model": model,
+                        "endpoint": "custom",
+                        "isArchived": False,
+                        "messages": [user_message_id, response_id]
+                    },
+                    "requestMessage": request_message,
+                    "responseMessage": agentic_response
+                }
+                
+                yield f"event: message\ndata: {json.dumps(final_data)}\n\n"
+                yield "data: [DONE]\n\n"
+            
+            return StreamingResponse(
+                generate_agentic_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                    "Connection": "keep-alive",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "X-Accel-Buffering": "no",
+                    "Transfer-Encoding": "chunked",
+                }
+            )
         
         # Get conversation context for better responses
         from app.services.memory_service import MemoryService
@@ -407,4 +650,88 @@ async def ask_provider(provider: str, request: Request, db: Session = Depends(ge
 @router.post("/ask/custom")
 async def ask_custom(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Legacy endpoint - redirects to the configured provider"""
-    return await ask_provider(settings.llm_provider, request, db, current_user) 
+    return await ask_provider(settings.llm_provider, request, db, current_user)
+
+@router.post("/agent-answer")
+async def answer_agent_question(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Answer a question from the agentic ticket creation flow"""
+    try:
+        data = await request.json()
+        session_id = data.get("session_id")
+        question = data.get("question")
+        answer = data.get("answer")
+        
+        if not all([session_id, question, answer]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing required fields: session_id, question, answer"
+            )
+        
+        # Get the agent state
+        state = get(session_id)
+        if not state:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Agent session not found"
+            )
+        
+        # Apply the answer
+        missing_field = state.pending[0] if state.pending else None
+        if not missing_field:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No pending questions"
+            )
+        
+        # Apply answer to the plan
+        state.plan = apply_answer(state.plan, missing_field, answer)
+        state.turns.append(ChatTurn(role="user", text=answer))
+        
+        # Check for more missing fields
+        missing = find_missing_fields(state.plan)
+        state.pending = missing
+        
+        if missing:
+            # Ask next question
+            question = render_question(missing[0])
+            state.turns.append(ChatTurn(role="assistant", text=question["text"]))
+            put(state)
+            
+            return {
+                "type": "agent_question",
+                "content": question["text"],
+                "question": question,
+                "plan_preview": state.plan.model_dump()
+            }
+        else:
+            # Complete - create tickets
+            state.completed = True
+            created = [
+                {
+                    "pseudo_id": f"{it.service_area.split()[0][:3].upper()}-{1000+i}",
+                    "service_area": it.service_area,
+                    "category": it.category,
+                    "ticket_type": it.ticket_type,
+                    "title": it.title,
+                    "form": it.form
+                }
+                for i, it in enumerate(state.plan.items)
+            ]
+            state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully!"))
+            put(state)
+            
+            return {
+                "type": "agent_complete",
+                "content": f"✅ Created {len(created)} ticket(s):\n" + "\n".join([f"• {t['title']} ({t['pseudo_id']})" for t in created]),
+                "tickets": created,
+                "plan": state.plan.model_dump()
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error handling agent answer: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error handling agent answer: {str(e)}"
+        ) 

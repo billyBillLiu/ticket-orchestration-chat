@@ -18,7 +18,7 @@ async def get_presets():
 
 # KEYS
 @router.get("/keys")
-async def get_keys(name: str = None):
+async def get_keys(name: str | None = None):
     """Get API keys - stub implementation"""
     return ApiResponse.create_success(
         data={
@@ -107,7 +107,7 @@ async def get_shared_link(link_id: str):
 
 # AGENT TOOL CALLS history
 @router.get("/agents/tools/calls")
-async def get_agent_tool_calls(conversationId: str = None):
+async def get_agent_tool_calls(conversationId: str | None = None):
     """Get agent tool calls for a conversation - stub implementation"""
     return ApiResponse.create_success(
         data={

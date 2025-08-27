@@ -16,25 +16,34 @@ def find_missing_fields(plan: TicketPlan) -> List[MissingField]:
     Compare each planned TicketItem against its TicketSpec (from catalog).
     If any required field isn't present or is empty, queue a MissingField.
     """
+    print(f"🔍 VALIDATOR: Finding missing fields for {len(plan.items)} ticket items")
     missing: List[MissingField] = []
     for i, item in enumerate(plan.items):
+        print(f"📋 VALIDATOR: Checking item {i}: {item.ticket_type}")
         spec = find_ticket_spec(item.service_area, item.category, item.ticket_type)
         if not spec:
             # If spec can't be found, it's a catalog mismatch—flag and skip questions.
+            print(f"⚠️ VALIDATOR: No spec found for {item.ticket_type}, marking as needs-triage")
             item.labels = list(set(item.labels + ["needs-triage"]))
             continue
 
+        print(f"📝 VALIDATOR: Found spec with {len(spec['fields'])} fields")
         for raw in spec["fields"]:
             fdef = FieldDef(**raw)  # normalize into our Pydantic FieldDef
             if not _is_required(raw):
+                print(f"⏭️ VALIDATOR: Skipping optional field: {fdef.name}")
                 continue  # optional field—skip if missing
 
             # Treat "", None, [] (for multi), {} (for rich objects) as missing
             value = item.form.get(fdef.name, None)
             is_blank = value in (None, "", [], {})
             if is_blank:
+                print(f"❌ VALIDATOR: Missing required field: {fdef.name}")
                 missing.append(MissingField(item_index=i, field=fdef))
+            else:
+                print(f"✅ VALIDATOR: Field {fdef.name} has value: {value}")
 
+    print(f"📊 VALIDATOR: Found {len(missing)} missing fields total")
     return missing
 
 def render_question(m: MissingField) -> dict:

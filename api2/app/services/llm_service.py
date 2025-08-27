@@ -63,6 +63,12 @@ class LLMService:
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        # Don't close the client when used as context manager
+        # The client will be closed when the service is destroyed
+        pass
+    
+    async def close(self):
+        """Close the HTTP client"""
         await self.client.aclose()
     
     async def list_models(self) -> List[Dict[str, Any]]:
@@ -420,27 +426,66 @@ def chat(messages: list[dict], *, model: str, format: str | None = None, options
     """
     import asyncio
     
+    print(f"🤖 LLM: Starting chat function with model: {model}")
+    print(f"📝 LLM: Got {len(messages)} messages")
+    
     # Convert dict messages to Message objects
     message_objects = [Message(**msg) for msg in messages]
     
     # Extract options
     temperature = options.get("temperature", 0.7) if options else 0.7
     max_tokens = options.get("num_ctx", 1000) if options else 1000
+    print(f"⚙️ LLM: Options - temp: {temperature}, max_tokens: {max_tokens}")
     
-    # Run the async function synchronously
-    async def _async_chat():
-        async with llm_service as service:
-            response = await service.generate_non_streaming_response(
+    # Check if we're already in an event loop
+    try:
+        loop = asyncio.get_running_loop()
+        print(f"⚠️ LLM: Already in event loop: {loop}")
+        # We're in an event loop, so we need to use create_task instead of asyncio.run()
+        async def _async_chat():
+            print(f"🔄 LLM: Starting async chat within existing loop...")
+            # Don't use context manager to keep client open
+            response = await llm_service.generate_non_streaming_response(
                 messages=message_objects,
                 model=model,
                 temperature=temperature,
                 max_tokens=max_tokens
             )
+            print(f"📥 LLM: Got response: {response.content[:100]}...")
             return response.content
-    
-    try:
-        return asyncio.run(_async_chat())
-    except Exception as e:
-        logger.error(f"Error in synchronous chat: {e}")
-        return f"Error: {str(e)}"
+        
+        # Create a task and wait for it to complete
+        task = loop.create_task(_async_chat())
+        # This is a blocking call, but it's the only way to get the result
+        # In a real async context, you'd want to make the calling function async too
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(lambda: asyncio.run(_async_chat()))
+            result = future.result(timeout=30)  # 30 second timeout
+        print(f"✅ LLM: Successfully completed async chat")
+        return result
+        
+    except RuntimeError:
+        print(f"✅ LLM: No event loop running, safe to use asyncio.run()")
+        # No event loop running, safe to use asyncio.run()
+        async def _async_chat():
+            print(f"🔄 LLM: Starting async chat...")
+            # Don't use context manager to keep client open
+            response = await llm_service.generate_non_streaming_response(
+                messages=message_objects,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            print(f"📥 LLM: Got response: {response.content[:100]}...")
+            return response.content
+        
+        try:
+            result = asyncio.run(_async_chat())
+            print(f"✅ LLM: Successfully completed async chat")
+            return result
+        except Exception as e:
+            print(f"❌ LLM: Error in async chat: {e}")
+            logger.error(f"Error in synchronous chat: {e}")
+            return f"Error: {str(e)}"
 

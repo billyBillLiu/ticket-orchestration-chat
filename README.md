@@ -3,13 +3,9 @@ This is a AI Chat that orchestrates ticket creation based on the user's needs. I
 Work in progress. Currently migrating backend from Node to FastAPI
 
 ### TODO:
-- Implement plan generator with JSON output validated by Pydantic (one or more tickets with fields and everything)
-- Build mock adapters and try dry run:
-    - Jira Mock: "created issue" to tickets.sqlite with fake key
-    - Slack Mock: append messages to notification.sqlite with channel name + body
-    
-- 
-- 
+- Make the llm show what tickets it is planning to make + list the options for the missing fields
+- Make the llm show the the final json file.
+- Current Issue: The LLM takes any input as valid input for fields, even if the types do not match.
 
 
 ### Cursor Rule Ideas:  
