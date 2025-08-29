@@ -70,9 +70,9 @@ async def handle_agentic_ticket_creation(content: str, conversation_id: int, use
         state.plan = await plan_from_text_async(content, user_email)
         state.plan.meta = {"request_text": content, "conversation_id": conversation_id}
          
-        # Directly set the user's email in all ticket forms
+        # Email is already set by the field prefiller, but double-check
         if user_email:
-            print(f"📧 AGENT: Setting user email '{user_email}' in all ticket forms")
+            print(f"📧 AGENT: Verifying user email '{user_email}' in all ticket forms")
             for item in state.plan.items:
                 if "email" in item.form:
                     item.form["email"] = user_email

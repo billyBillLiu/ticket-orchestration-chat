@@ -50,14 +50,16 @@ async def chat_message(sid: str, payload: ChatMessageIn):
 
     # If we don't have a plan yet, create one now from the first user utterance
     if state.plan is None:
-        plan = plan_from_text(payload.text, payload.user_email)
+        # Use the async version that includes field prefilling
+        from app.services.planner_service import plan_from_text_async
+        plan = await plan_from_text_async(payload.text, payload.user_email)
         # Add minimal meta (you can attach requester / target from payload.context)
         plan.meta = {"request_text": payload.text, **(payload.context or {})}
         state.plan = plan
         
-        # Directly set the user's email in all ticket forms
+        # Email is already set by the field prefiller, but double-check
         if payload.user_email:
-            print(f"📧 AGENT: Setting user email '{payload.user_email}' in all ticket forms")
+            print(f"📧 AGENT: Verifying user email '{payload.user_email}' in all ticket forms")
             for item in state.plan.items:
                 if "email" in item.form:
                     item.form["email"] = payload.user_email
