@@ -12,6 +12,7 @@ from app.services.message_service import MessageService
 # Import agentic ticket creation components
 from app.services.planner_service import plan_from_text
 from app.services.validator_service import find_missing_fields, render_question, apply_answer
+from app.services.summary_service import generate_summaries_for_plan
 from app.models.ticket_agent import ConversationState, ChatTurn
 from app.utils.session_store import put, get
 
@@ -28,7 +29,7 @@ def is_ticket_request(content: str) -> bool:
     content_lower = content.lower()
     return any(keyword in content_lower for keyword in ticket_keywords)
 
-def handle_agentic_ticket_creation(content: str, conversation_id: int) -> dict:
+async def handle_agentic_ticket_creation(content: str, conversation_id: int, user_email: str = None) -> dict:
     """Handle ticket creation using the agentic flow"""
     # Create or get session for this conversation
     session_id = f"conv_{conversation_id}"
@@ -43,8 +44,16 @@ def handle_agentic_ticket_creation(content: str, conversation_id: int) -> dict:
     
     # If no plan yet, create one
     if state.plan is None:
-        state.plan = plan_from_text(content)
+        state.plan = plan_from_text(content, user_email)
         state.plan.meta = {"request_text": content, "conversation_id": conversation_id}
+        
+        # Directly set the user's email in all ticket forms
+        if user_email:
+            print(f"📧 AGENT: Setting user email '{user_email}' in all ticket forms")
+            for item in state.plan.items:
+                if "email" in item.form:
+                    item.form["email"] = user_email
+                    print(f"📧 AGENT: Set email for {item.ticket_type}")
     
     # Find missing fields
     missing = find_missing_fields(state.plan)
@@ -64,7 +73,9 @@ def handle_agentic_ticket_creation(content: str, conversation_id: int) -> dict:
             "session_id": session_id
         }
     else:
-        # Complete - create tickets
+        # Complete - generate summaries and create tickets
+        state.plan = await generate_summaries_for_plan(state.plan)
+        
         state.completed = True
         created = [
             {
@@ -77,7 +88,7 @@ def handle_agentic_ticket_creation(content: str, conversation_id: int) -> dict:
             }
             for i, it in enumerate(state.plan.items)
         ]
-        state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully!"))
+        state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully with auto-generated summaries!"))
         put(state)
         
         return {
@@ -136,7 +147,7 @@ async def create_message(
         # Check if this is a ticket request
         if is_ticket_request(message.content):
             # Handle with agentic ticket creation
-            agent_response = handle_agentic_ticket_creation(message.content, conversation_id)
+            agent_response = await handle_agentic_ticket_creation(message.content, conversation_id, current_user.email)
             
             # Create the user message normally
             message_service = MessageService(db)

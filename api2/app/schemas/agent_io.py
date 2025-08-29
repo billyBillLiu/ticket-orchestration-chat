@@ -12,6 +12,8 @@ class ChatMessageIn(BaseModel):
     answer_to: Optional[Dict[str, Any]] = None  # {"item_index": int, "field_name": str}
     # Optional context you may pass from your UI (e.g., requester, target employee)
     context: Optional[Dict[str, Any]] = None
+    # User's email for auto-filling email fields
+    user_email: Optional[str] = None
 
 class QuestionOut(BaseModel):
     text: str

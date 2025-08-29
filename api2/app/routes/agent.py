@@ -6,6 +6,7 @@ from app.models.ticket_agent import ConversationState, ChatTurn
 from app.schemas.agent_io import StartSessionOut, ChatMessageIn, ChatMessageOut, QuestionOut
 from app.services.planner_service import plan_from_text
 from app.services.validator_service import find_missing_fields, render_question, apply_answer
+from app.services.summary_service import generate_summaries_for_plan
 from app.utils.session_store import put, get
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -22,7 +23,7 @@ def start_session():
     return StartSessionOut(session_id=sid)
 
 @router.post("/{sid}/message", response_model=ChatMessageOut)
-def chat_message(sid: str, payload: ChatMessageIn):
+async def chat_message(sid: str, payload: ChatMessageIn):
     """
     Core loop:
     - If there's no plan yet, create one from the user's first message.
@@ -49,10 +50,18 @@ def chat_message(sid: str, payload: ChatMessageIn):
 
     # If we don't have a plan yet, create one now from the first user utterance
     if state.plan is None:
-        plan = plan_from_text(payload.text)
+        plan = plan_from_text(payload.text, payload.user_email)
         # Add minimal meta (you can attach requester / target from payload.context)
         plan.meta = {"request_text": payload.text, **(payload.context or {})}
         state.plan = plan
+        
+        # Directly set the user's email in all ticket forms
+        if payload.user_email:
+            print(f"📧 AGENT: Setting user email '{payload.user_email}' in all ticket forms")
+            for item in state.plan.items:
+                if "email" in item.form:
+                    item.form["email"] = payload.user_email
+                    print(f"📧 AGENT: Set email for {item.ticket_type}")
 
     # Compute which required fields are missing
     missing = find_missing_fields(state.plan)
@@ -70,7 +79,10 @@ def chat_message(sid: str, payload: ChatMessageIn):
             plan_preview=state.plan.model_dump()
         )
 
-    # Otherwise, we have a complete plan—"create" tickets (mock)
+    # Otherwise, we have a complete plan—generate summaries and "create" tickets (mock)
+    print(f"📝 AGENT: All fields filled, generating summaries...")
+    state.plan = await generate_summaries_for_plan(state.plan)
+    
     state.completed = True
     created = [
         {
@@ -83,7 +95,7 @@ def chat_message(sid: str, payload: ChatMessageIn):
         }
         for i, it in enumerate(state.plan.items)
     ]
-    state.turns.append(ChatTurn(role="assistant", text="Tickets created."))
+    state.turns.append(ChatTurn(role="assistant", text="Tickets created with auto-generated summaries."))
     put(state)
 
     return ChatMessageOut(

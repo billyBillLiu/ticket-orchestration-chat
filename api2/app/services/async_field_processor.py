@@ -2,7 +2,7 @@
 from __future__ import annotations
 import re
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Any, List, Optional, Union
 from app.models.ticket_agent import FieldDef
 from app.services.llm_service import llm_service, Message as LLMMessage
@@ -351,13 +351,59 @@ If no option matches well, return "NO_MATCH"."""
     @staticmethod
     async def _llm_parse_date(user_input: str) -> str:
         """Use LLM to parse and standardize date input"""
-        prompt = f"""You are a date parser. Convert the input "{user_input}" to YYYY-MM-DD format.
+        # Get current date for context
+        today = datetime.now().date()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        # Try programmatic parsing for common relative dates first
+        user_input_lower = user_input.lower().strip()
+        
+        if user_input_lower == "today":
+            return today_str
+        elif user_input_lower == "tomorrow":
+            tomorrow = today + timedelta(days=1)
+            return tomorrow.strftime('%Y-%m-%d')
+        elif user_input_lower == "yesterday":
+            yesterday = today - timedelta(days=1)
+            return yesterday.strftime('%Y-%m-%d')
+        elif user_input_lower == "next week":
+            next_week = today + timedelta(days=7)
+            return next_week.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 3 days":
+            in_3_days = today + timedelta(days=3)
+            return in_3_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 5 days":
+            in_5_days = today + timedelta(days=5)
+            return in_5_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 7 days":
+            in_7_days = today + timedelta(days=7)
+            return in_7_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 10 days":
+            in_10_days = today + timedelta(days=10)
+            return in_10_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 14 days":
+            in_14_days = today + timedelta(days=14)
+            return in_14_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 30 days":
+            in_30_days = today + timedelta(days=30)
+            return in_30_days.strftime('%Y-%m-%d')
+        
+        # For more complex dates, use LLM with current date context
+        prompt = f"""You are a date parser. Today's date is {today_str}.
+
+Convert the input "{user_input}" to YYYY-MM-DD format.
 
 Rules:
-- "tomorrow" = today + 1 day
-- "yesterday" = today - 1 day  
-- "next Monday" = next Monday's date
-- "in 3 days" = today + 3 days
+- "tomorrow" = today + 1 day = {today_str} + 1 day
+- "yesterday" = today - 1 day = {today_str} - 1 day  
+- "next Monday" = next Monday's date from {today_str}
+- "next Tuesday" = next Tuesday's date from {today_str}
+- "next Wednesday" = next Wednesday's date from {today_str}
+- "next Thursday" = next Thursday's date from {today_str}
+- "next Friday" = next Friday's date from {today_str}
+- "next Saturday" = next Saturday's date from {today_str}
+- "next Sunday" = next Sunday's date from {today_str}
+- "in X days" = today + X days
 - "next week" = today + 7 days
 - "end of month" = last day of current month
 - "beginning of next month" = first day of next month
@@ -365,8 +411,8 @@ Rules:
 IMPORTANT: Return ONLY the date in YYYY-MM-DD format. No explanations, no code, no other text.
 
 Example responses:
-- Input: "tomorrow" → Output: "2024-01-16"
-- Input: "next Monday" → Output: "2024-01-22"
+- Input: "tomorrow" → Output: "{(today + timedelta(days=1)).strftime('%Y-%m-%d')}"
+- Input: "next Monday" → Output: (calculate next Monday from {today_str})
 - Input: "invalid" → Output: "INVALID_DATE"
 
 Your response:"""

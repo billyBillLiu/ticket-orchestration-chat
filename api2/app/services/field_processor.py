@@ -2,7 +2,7 @@
 from __future__ import annotations
 import re
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Any, List, Optional, Union
 from app.models.ticket_agent import FieldDef
 from app.services.llm_service import llm_service, Message as LLMMessage
@@ -94,6 +94,43 @@ class FieldProcessor:
     def _process_date(user_input: str) -> str:
         """Process date input - convert to ISO format"""
         user_input = user_input.strip()
+        
+        # Get current date for context
+        today = datetime.now().date()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        # Try programmatic parsing for common relative dates first
+        user_input_lower = user_input.lower().strip()
+        
+        if user_input_lower == "today":
+            return today_str
+        elif user_input_lower == "tomorrow":
+            tomorrow = today + timedelta(days=1)
+            return tomorrow.strftime('%Y-%m-%d')
+        elif user_input_lower == "yesterday":
+            yesterday = today - timedelta(days=1)
+            return yesterday.strftime('%Y-%m-%d')
+        elif user_input_lower == "next week":
+            next_week = today + timedelta(days=7)
+            return next_week.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 3 days":
+            in_3_days = today + timedelta(days=3)
+            return in_3_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 5 days":
+            in_5_days = today + timedelta(days=5)
+            return in_5_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 7 days":
+            in_7_days = today + timedelta(days=7)
+            return in_7_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 10 days":
+            in_10_days = today + timedelta(days=10)
+            return in_10_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 14 days":
+            in_14_days = today + timedelta(days=14)
+            return in_14_days.strftime('%Y-%m-%d')
+        elif user_input_lower == "in 30 days":
+            in_30_days = today + timedelta(days=30)
+            return in_30_days.strftime('%Y-%m-%d')
         
         # Try common date formats
         date_formats = [

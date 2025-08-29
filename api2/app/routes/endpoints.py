@@ -18,6 +18,7 @@ from app.constants import ACTIVE_MODEL, ACTIVE_PROVIDER
 # Import agentic ticket creation components
 from app.services.planner_service import plan_from_text, plan_from_text_async
 from app.services.validator_service import find_missing_fields, render_question, apply_answer, apply_answer_async
+from app.services.summary_service import generate_summaries_for_plan
 from app.models.ticket_agent import ConversationState, ChatTurn
 from app.utils.session_store import put, get
 
@@ -110,8 +111,10 @@ async def handle_agentic_ticket_creation(content: str, conversation_id: int, use
             "session_id": session_id
         }
     else:
-        # Complete - create tickets
-        print(f"🎉 AGENT: All fields complete, creating tickets...")
+        # Complete - generate summaries and create tickets
+        print(f"🎉 AGENT: All fields complete, generating summaries...")
+        state.plan = await generate_summaries_for_plan(state.plan)
+        
         state.completed = True
         created = [
             {
@@ -124,7 +127,7 @@ async def handle_agentic_ticket_creation(content: str, conversation_id: int, use
             }
             for i, it in enumerate(state.plan.items)
         ]
-        state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully!"))
+        state.turns.append(ChatTurn(role="assistant", text="Tickets created successfully with auto-generated summaries!"))
         put(state)
         
         print(f"✅ AGENT: Created {len(created)} tickets")

@@ -15,6 +15,7 @@ def find_missing_fields(plan: TicketPlan) -> List[MissingField]:
     """
     Compare each planned TicketItem against its TicketSpec (from catalog).
     If any required field isn't present or is empty, queue a MissingField.
+    Skip the summary field as it will be auto-generated.
     """
     print(f"🔍 VALIDATOR: Finding missing fields for {len(plan.items)} ticket items")
     missing: List[MissingField] = []
@@ -30,6 +31,12 @@ def find_missing_fields(plan: TicketPlan) -> List[MissingField]:
         print(f"📝 VALIDATOR: Found spec with {len(spec['fields'])} fields")
         for raw in spec["fields"]:
             fdef = FieldDef(**raw)  # normalize into our Pydantic FieldDef
+            
+            # Skip summary field - it will be auto-generated
+            if fdef.name == "summary":
+                print(f"⏭️ VALIDATOR: Skipping summary field (will be auto-generated)")
+                continue
+                
             if not _is_required(raw):
                 print(f"⏭️ VALIDATOR: Skipping optional field: {fdef.name}")
                 continue  # optional field—skip if missing
