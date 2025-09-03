@@ -98,7 +98,7 @@ async def handle_agentic_ticket_creation(content: str, conversation_id: int, use
     if missing:
         # Ask for next field
         print(f"❓ AGENT: Asking for field: {missing[0].field.name}")
-        question = render_question(missing[0])
+        question = render_question(missing[0], state.plan)
         state.turns.append(ChatTurn(role="assistant", text=question["text"]))
         put(state)
         
@@ -714,7 +714,7 @@ async def answer_agent_question(request: Request, db: Session = Depends(get_db),
         
         if missing:
             # Ask next question
-            question = render_question(missing[0])
+            question = render_question(missing[0], state.plan)
             state.turns.append(ChatTurn(role="assistant", text=question["text"]))
             put(state)
             

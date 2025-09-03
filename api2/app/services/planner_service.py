@@ -22,6 +22,7 @@ CRITICAL RULES:
 - Focus ONLY on identifying the correct ticket types and categories.
 - Field prefilling will be handled by a separate specialized process.
 - Return ONLY valid JSON - NO comments, NO trailing commas, NO extra text.
+- IMPORTANT: Return a SINGLE JSON object with an array of tickets, not multiple separate JSON objects.
 
 This is the only output format you are allowed to return:
 {
@@ -32,7 +33,7 @@ This is the only output format you are allowed to return:
       "ticket_type": "<ticket type>",
       "title": "<short actionable title>",
       "description": "<short context>",
-      "form": {},      // ALWAYS empty - field prefilling happens separately
+      "form": {},
       "labels": []
     }
   ],
@@ -43,6 +44,7 @@ EXAMPLES:
 - User says "I need a final loan tape for AAA" → ticket_type: "Loan Tape" (form stays empty)
 - User says "investor report rerun from july 18 to tomorrow" → ticket_type: "Investor Reports Manual Rerun" (form stays empty)
 - User says "high urgency datadog monitoring" → ticket_type: "Datadog Monitors and Dashboards" (form stays empty)
+- User says "I need to make a loan tape ticket and a manual loan verification ticket" → returns ONE JSON with TWO items in the items array
 """
 
 

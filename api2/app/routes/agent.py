@@ -71,7 +71,7 @@ async def chat_message(sid: str, payload: ChatMessageIn):
 
     if missing:
         # Ask for the next field and return it to the UI
-        q = render_question(missing[0])
+        q = render_question(missing[0], state.plan)
         state.turns.append(ChatTurn(role="assistant", text=q["text"]))
         put(state)
         return ChatMessageOut(

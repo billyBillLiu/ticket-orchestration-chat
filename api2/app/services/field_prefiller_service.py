@@ -110,7 +110,7 @@ async def prefill_ticket_fields_async(ticket_item: TicketItem, user_text: str, u
 
                 User Request: "{user_text}"
 
-                Available Fields and Options:
+                This is the catalog context. It Shows all Available Fields and Options:
                 {field_context}
 
                 Please fill in the form fields based on the user's request. Return ONLY a JSON object with field names as keys and values as the selected options or filled data.
@@ -133,8 +133,12 @@ async def prefill_ticket_fields_async(ticket_item: TicketItem, user_text: str, u
                 "end_date": "2024-01-16",
                 "vendor_name": "AAA Final Loan Tape"
                 }}
+                Note that this is just an example, you should fill the fields based on the user's request. Do NOT use this as a template or use these specific values unless they appear in the user's request.
 
                 Only include fields that you can confidently fill based on the user's request.
+                Do NOT fill any fields that cannot be inferenced based on the provided information in the user's request.
+                Do NOT fill in any option fields that do not have available options similar to any information in the user's request.
+                Do NOT fill in any True or False fields that cannot be inferenced based on the provided information in the user's request.
              """
     
     messages = [

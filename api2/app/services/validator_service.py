@@ -53,29 +53,38 @@ def find_missing_fields(plan: TicketPlan) -> List[MissingField]:
     print(f"📊 VALIDATOR: Found {len(missing)} missing fields total")
     return missing
 
-def render_question(m: MissingField) -> dict:
+def render_question(m: MissingField, plan: TicketPlan) -> dict:
     """
     Turn a MissingField into a question payload usable by your chatbot UI.
     Note: the "options" are resolved from constants.py if field.type is choice/multi_choice.
     """
     f = m.field
+    # Get the ticket information for context
+    ticket_item = plan.items[m.item_index]
+    
+    # Create clean ticket identifier - just show ticket number if multiple tickets
+    if len(plan.items) > 1:
+        ticket_identifier = f"[Ticket {m.item_index + 1}]"
+    else:
+        ticket_identifier = f"[{ticket_item.ticket_type}]"
+    
     # Human-friendly field display name (space out snake_case)
     nice = f.name.replace("_", " ").strip()
 
     # Basic prompt text per field type; you can tune copy here
     prompt_by_type = {
-        "string"      : f'Please provide **{nice}**.',
-        "rich_text"   : f'Add details for **{nice}** (you can include formatting and attach files).',
-        "bool"        : f'Is **{nice}** true or false?',
-        "int"         : f'Enter a number for **{nice}**.',
-        "date"        : f'Pick a date for **{nice}**.',
-        "time"        : f'Pick a time for **{nice}**.',
-        "file"        : f'Upload a file for **{nice}**.',
-        "files"       : f'Upload file(s) for **{nice}**.',
-        "choice"      : f'Select **{nice}**.',
-        "multi_choice": f'Select one or more options for **{nice}**.',
+        "string"      : f'{ticket_identifier} Please provide **{nice}**.',
+        "rich_text"   : f'{ticket_identifier} Add details for **{nice}** (you can include formatting and attach files).',
+        "bool"        : f'{ticket_identifier} Is **{nice}** true or false?',
+        "int"         : f'{ticket_identifier} Enter a number for **{nice}**.',
+        "date"        : f'{ticket_identifier} Pick a date for **{nice}**.',
+        "time"        : f'{ticket_identifier} Pick a time for **{nice}**.',
+        "file"        : f'{ticket_identifier} Upload a file for **{nice}**.',
+        "files"       : f'{ticket_identifier} Upload file(s) for **{nice}**.',
+        "choice"      : f'{ticket_identifier} Select **{nice}**.',
+        "multi_choice": f'{ticket_identifier} Select one or more options for **{nice}**.',
     }
-    prompt_text = prompt_by_type.get(f.type, f'Provide **{nice}**.')
+    prompt_text = prompt_by_type.get(f.type, f'{ticket_identifier} Provide **{nice}**.')
 
     # Resolve options for enumerated fields
     options = None
