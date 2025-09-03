@@ -3,6 +3,9 @@ This is a AI Chat that orchestrates ticket creation based on the user's needs. I
 Work in progress. Currently migrating backend from Node to FastAPI
 
 ### TODO:
+- Issues: Some fields are still being prefilled when they should not be
+- Still needs conversation title generation
+- Does not automatically log out when auth token expires
 
 ## Temporary Notes:
 
