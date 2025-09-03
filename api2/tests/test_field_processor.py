@@ -5,7 +5,7 @@ Test script for the field processor
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.services.field_processor import field_processor
 from app.models.ticket_agent import FieldDef

@@ -6,7 +6,7 @@ Test script for LLM date parsing functionality
 import sys
 import os
 import asyncio
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.services.async_field_processor import AsyncFieldProcessor
 

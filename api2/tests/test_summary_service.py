@@ -6,7 +6,7 @@ import sys
 import os
 
 # Add the app directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'app'))
 
 from app.services.summary_service import generate_ticket_summary
 from app.models.ticket_agent import TicketItem
